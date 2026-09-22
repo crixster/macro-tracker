@@ -12,9 +12,11 @@
     button:hover { background: #0056b3; }
     .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; }
     .macro-box { background: #e9ecef; padding: 10px; border-radius: 5px; }
-    video { width: 100%; border-radius: 5px; display: none; }
+    video { width: 100%; border-radius: 5px; display: none; margin-bottom: 10px; }
     ul { list-style: none; padding: 0; }
     li { background: #f8f9fa; border-bottom: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; }
+    .status { font-size: 0.85em; color: #666; font-style: italic; margin-top: -5px; margin-bottom: 10px; }
+    .api-config { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 0.9em; }
   </style>
   <!-- OCR Library -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -24,6 +26,13 @@
 <body>
 
   <h2>🥗 Free Macro Tracker</h2>
+
+  <!-- Optional API Key Setup -->
+  <div class="api-config">
+    <label><strong>Google Search API Key (SerpApi):</strong></label>
+    <input type="password" id="serp-key" placeholder="Paste free SerpApi Key here for Google macro search" onchange="saveKey()">
+    <small style="color: #666;">Get a free key at <a href="https://serpapi.com" target="_blank">serpapi.com</a> (250 free searches/mo).</small>
+  </div>
 
   <!-- Daily Summary -->
   <div class="card">
@@ -36,30 +45,31 @@
     </div>
   </div>
 
-  <!-- Search / Scan Inputs -->
+  <!-- Search & Camera Inputs -->
   <div class="card">
     <h3>Add Food Item</h3>
     
     <!-- Text Search -->
-    <label>Search Food (Open Food Facts / USDA):</label>
-    <input type="text" id="search-input" placeholder="e.g. Oatmeal, Banana, or Barcode">
-    <button onclick="searchFood()">Search Database</button>
+    <label>Search Food (e.g. "Char Kuey Teow", "Chicken Rice"):</label>
+    <input type="text" id="search-input" placeholder="Type dish or enter barcode...">
+    <button onclick="searchFood()">Search Web & Databases</button>
+    <p id="search-status" class="status"></p>
 
     <hr>
 
     <!-- Barcode Scanner -->
-    <button onclick="startBarcodeScan()">📷 Scan Barcode with Camera</button>
-    <video id="interactive" class="viewport"></video>
+    <button onclick="startBarcodeScan()">📷 Scan Barcode via Camera</button>
+    <video id="barcode-video"></video>
 
     <hr>
 
-    <!-- Image OCR Label Reader -->
-    <label>Scan Nutrition Label (Image):</label>
-    <input type="file" id="label-image" accept="image/*" onchange="scanNutritionLabel(event)">
-    <p id="ocr-status" style="font-size: 0.85em; color: #666;"></p>
+    <!-- Camera / File Upload for Nutrition Label OCR -->
+    <label>📷 Scan Nutrition Label (Photo):</label>
+    <input type="file" id="label-image" accept="image/*" capture="environment" onchange="scanNutritionLabel(event)">
+    <p id="ocr-status" class="status"></p>
   </div>
 
-  <!-- Item Form for Confirmation -->
+  <!-- Confirmation Form -->
   <div class="card" id="add-form" style="display:none;">
     <h3 id="item-name">Confirm Item</h3>
     <label>Calories (kcal):</label> <input type="number" id="in-cal" value="0">
@@ -79,12 +89,19 @@
   <script>
     let dailyLog = JSON.parse(localStorage.getItem('dailyLog')) || [];
 
+    // Load saved API key from localStorage
+    document.getElementById('serp-key').value = localStorage.getItem('serpApiKey') || '';
+
+    function saveKey() {
+      localStorage.setItem('serpApiKey', document.getElementById('serp-key').value.trim());
+    }
+
     function updateUI() {
       const list = document.getElementById('logged-list');
       list.innerHTML = '';
       let cal = 0, p = 0, c = 0, f = 0;
 
-      dailyLog.forEach((item, i) => {
+      dailyLog.forEach((item) => {
         cal += item.cal; p += item.p; c += item.c; f += item.f;
         list.innerHTML += `<li><span><strong>${item.name}</strong></span> <span>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</span></li>`;
       });
@@ -97,44 +114,116 @@
       localStorage.setItem('dailyLog', JSON.stringify(dailyLog));
     }
 
-    // Search Open Food Facts API
+    // MAIN SEARCH FUNCTION
     async function searchFood() {
       const query = document.getElementById('search-input').value.trim();
+      const status = document.getElementById('search-status');
       if (!query) return;
 
-      const url = /^\d+$/.test(query)
-        ? `https://world.openfoodfacts.org/api/v2/product/${query}.json`
-        : `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1`;
+      status.innerText = "Searching...";
 
-      try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'FreeMacroTrackerApp/1.0' } });
-        const data = await res.json();
-        
-        let product = data.product || (data.products && data.products[0]);
-        if (product) {
-          const n = product.nutriments || {};
-          showAddForm(
-            product.product_name || query,
-            Math.round(n['energy-kcal_100g'] || n['energy-kcal'] || 0),
-            Math.round(n.proteins_100g || n.proteins || 0),
-            Math.round(n.carbohydrates_100g || n.carbohydrates || 0),
-            Math.round(n.fat_100g || n.fat || 0)
-          );
-        } else {
-          alert('Item not found. Try entering values manually.');
-          showAddForm(query, 0, 0, 0, 0);
-        }
-      } catch (e) {
-        alert('Error connecting to open database.');
+      // 1. If query is a Barcode, search Open Food Facts directly
+      if (/^\d+$/.test(query)) {
+        try {
+          const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${query}.json`);
+          const data = await res.json();
+          if (data.status === 1 && data.product) {
+            const n = data.product.nutriments || {};
+            showAddForm(
+              data.product.product_name || query,
+              Math.round(n['energy-kcal_100g'] || n['energy-kcal'] || 0),
+              Math.round(n.proteins_100g || n.proteins || 0),
+              Math.round(n.carbohydrates_100g || n.carbohydrates || 0),
+              Math.round(n.fat_100g || n.fat || 0)
+            );
+            status.innerText = "";
+            return;
+          }
+        } catch (e) { console.error(e); }
       }
+
+      // 2. Search Google via SerpApi if API Key is configured
+      const serpKey = localStorage.getItem('serpApiKey');
+      if (serpKey) {
+        status.innerText = "Searching Google results...";
+        try {
+          // Use corsproxy.io to allow frontend JavaScript to call SerpApi directly without CORS issues
+          const targetUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query + " macro calories protein carbs fat")}&engine=google&api_key=${serpKey}`;
+          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+          
+          const gRes = await fetch(proxyUrl);
+          const gData = await gRes.json();
+
+          let fullText = "";
+          if (gData.answer_box && gData.answer_box.snippet) fullText += gData.answer_box.snippet + " ";
+          if (gData.answer_box && gData.answer_box.answer) fullText += gData.answer_box.answer + " ";
+          if (gData.organic_results) {
+            gData.organic_results.slice(0, 3).forEach(r => { fullText += (r.snippet || "") + " "; });
+          }
+
+          if (fullText) {
+            // Regex parsing to grab calories, carbs, protein, and fat from Google snippet text
+            const extractValue = (labelRegex) => {
+              const match = fullText.match(labelRegex);
+              if (match) {
+                const num1 = parseInt(match[1]);
+                const num2 = match[2] ? parseInt(match[2]) : num1;
+                return Math.round((num1 + num2) / 2); // Average range if present (e.g. 525 to 703)
+              }
+              return 0;
+            };
+
+            const cal = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*(?:kcal|calories)/i);
+            const c = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:carbohydrates|carbs)/i);
+            const p = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?protein/i);
+            const f = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?fat/i);
+
+            if (cal || p || c || f) {
+              showAddForm(query, cal, p, c, f);
+              status.innerText = "Found macros via Google search!";
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Google search error:", e);
+        }
+      }
+
+      // 3. Fallback to free USDA Food Central API
+      status.innerText = "Searching USDA database...";
+      try {
+        const usdaRes = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=${encodeURIComponent(query)}`);
+        const usdaData = await usdaRes.json();
+
+        if (usdaData.foods && usdaData.foods.length > 0) {
+          const food = usdaData.foods[0];
+          let cal = 0, p = 0, c = 0, f = 0;
+
+          food.foodNutrients.forEach(n => {
+            const name = n.nutrientName.toLowerCase();
+            if (name.includes('energy') && (n.unitName === 'KCAL' || !cal)) cal = n.value;
+            if (name.includes('protein')) p = n.value;
+            if (name.includes('carbohydrate')) c = n.value;
+            if (name.includes('total lipid') || name === 'fat') f = n.value;
+          });
+
+          showAddForm(food.description, Math.round(cal), Math.round(p), Math.round(c), Math.round(f));
+          status.innerText = "";
+          return;
+        }
+      } catch (e) { console.error(e); }
+
+      status.innerText = "";
+      alert("No automatic macros found. Please enter estimated macros manually below.");
+      showAddForm(query, 0, 0, 0, 0);
     }
 
-    // Barcode Scanning
+    // Camera Barcode Reader
     function startBarcodeScan() {
-      const video = document.getElementById('interactive');
+      const video = document.getElementById('barcode-video');
       video.style.display = 'block';
       const codeReader = new ZXing.BrowserMultiFormatReader();
-      codeReader.decodeFromVideoDevice(null, 'interactive', (result, err) => {
+      codeReader.decodeFromVideoDevice(null, 'barcode-video', (result) => {
         if (result) {
           document.getElementById('search-input').value = result.text;
           codeReader.reset();
@@ -144,30 +233,40 @@
       });
     }
 
-    // OCR Scan Nutrition Label via Tesseract.js
+    // Camera/Image Nutrition Label OCR Scan via Tesseract.js
     async function scanNutritionLabel(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const status = document.getElementById('ocr-status');
-      status.innerText = 'Scanning image with OCR... Please wait.';
+      status.innerText = 'Scanning nutrition label... Please wait (10-15s).';
 
-      const { data: { text } } = await Tesseract.recognize(file, 'eng');
-      status.innerText = 'Scan finished! Extracting numbers...';
+      try {
+        const worker = await Tesseract.createWorker('eng');
+        const ret = await worker.recognize(file);
+        const text = ret.data.text;
+        await worker.terminate();
 
-      // Simple Regex extraction for OCR text
-      const extract = (regex) => {
-        const match = text.match(regex);
-        return match ? parseInt(match[1]) : 0;
-      };
+        status.innerText = 'Scan complete! Extracting numbers...';
 
-      const calories = extract(/calories\s*(\d+)/i) || extract(/energy\s*(\d+)/i);
-      const protein = extract(/protein\s*(\d+)/i);
-      const carbs = extract(/total carbohydrate\s*(\d+)/i) || extract(/carbs?\s*(\d+)/i);
-      const fat = extract(/total fat\s*(\d+)/i) || extract(/fat\s*(\d+)/i);
+        const getVal = (patterns) => {
+          for (let p of patterns) {
+            const match = text.match(p);
+            if (match && match[1]) return parseInt(match[1]);
+          }
+          return 0;
+        };
 
-      showAddForm('Scanned Label', calories, protein, carbs, fat);
-      status.innerText = '';
+        const cal = getVal([/calories\s*(\d+)/i, /energy\s*(\d+)/i]);
+        const p = getVal([/protein\s*(\d+)\s*g?/i]);
+        const c = getVal([/total carbohydrate\s*(\d+)\s*g?/i, /carbs?\s*(\d+)\s*g?/i]);
+        const f = getVal([/total fat\s*(\d+)\s*g?/i, /fat\s*(\d+)\s*g?/i]);
+
+        showAddForm('Scanned Label', cal, p, c, f);
+        status.innerText = '';
+      } catch (e) {
+        status.innerText = 'Error reading image. Please make sure image is clear.';
+      }
     }
 
     function showAddForm(name, cal, p, c, f) {
@@ -180,9 +279,8 @@
     }
 
     function saveItem() {
-      const name = document.getElementById('item-name').innerText;
       dailyLog.push({
-        name,
+        name: document.getElementById('item-name').innerText,
         cal: Number(document.getElementById('in-cal').value),
         p: Number(document.getElementById('in-p').value),
         c: Number(document.getElementById('in-c').value),
