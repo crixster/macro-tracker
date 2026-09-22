@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Macro Tracker</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f4f9; }
+    .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    input, button { padding: 10px; width: 100%; box-sizing: border-box; margin-top: 5px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; }
+    .macro-box { background: #e9ecef; padding: 10px; border-radius: 5px; }
+    video { width: 100%; border-radius: 5px; display: none; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f8f9fa; border-bottom: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; }
+  </style>
+  <!-- OCR Library -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- Barcode Library -->
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+</head>
+<body>
+
+  <h2>🥗 Free Macro Tracker</h2>
+
+  <!-- Daily Summary -->
+  <div class="card">
+    <h3>Today's Totals</h3>
+    <div class="macro-grid">
+      <div class="macro-box"><strong id="total-cal">0</strong><br><small>kcal</small></div>
+      <div class="macro-box"><strong id="total-p">0</strong>g<br><small>Protein</small></div>
+      <div class="macro-box"><strong id="total-c">0</strong>g<br><small>Carbs</small></div>
+      <div class="macro-box"><strong id="total-f">0</strong>g<br><small>Fat</small></div>
+    </div>
+  </div>
+
+  <!-- Search / Scan Inputs -->
+  <div class="card">
+    <h3>Add Food Item</h3>
+    
+    <!-- Text Search -->
+    <label>Search Food (Open Food Facts / USDA):</label>
+    <input type="text" id="search-input" placeholder="e.g. Oatmeal, Banana, or Barcode">
+    <button onclick="searchFood()">Search Database</button>
+
+    <hr>
+
+    <!-- Barcode Scanner -->
+    <button onclick="startBarcodeScan()">📷 Scan Barcode with Camera</button>
+    <video id="interactive" class="viewport"></video>
+
+    <hr>
+
+    <!-- Image OCR Label Reader -->
+    <label>Scan Nutrition Label (Image):</label>
+    <input type="file" id="label-image" accept="image/*" onchange="scanNutritionLabel(event)">
+    <p id="ocr-status" style="font-size: 0.85em; color: #666;"></p>
+  </div>
+
+  <!-- Item Form for Confirmation -->
+  <div class="card" id="add-form" style="display:none;">
+    <h3 id="item-name">Confirm Item</h3>
+    <label>Calories (kcal):</label> <input type="number" id="in-cal" value="0">
+    <label>Protein (g):</label> <input type="number" id="in-p" value="0">
+    <label>Carbs (g):</label> <input type="number" id="in-c" value="0">
+    <label>Fat (g):</label> <input type="number" id="in-f" value="0">
+    <button onclick="saveItem()">Log Meal</button>
+  </div>
+
+  <!-- Logged Items -->
+  <div class="card">
+    <h3>Logged Today</h3>
+    <ul id="logged-list"></ul>
+    <button onclick="clearLog()" style="background: #dc3545;">Clear Today's Log</button>
+  </div>
+
+  <script>
+    let dailyLog = JSON.parse(localStorage.getItem('dailyLog')) || [];
+
+    function updateUI() {
+      const list = document.getElementById('logged-list');
+      list.innerHTML = '';
+      let cal = 0, p = 0, c = 0, f = 0;
+
+      dailyLog.forEach((item, i) => {
+        cal += item.cal; p += item.p; c += item.c; f += item.f;
+        list.innerHTML += `<li><span><strong>${item.name}</strong></span> <span>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</span></li>`;
+      });
+
+      document.getElementById('total-cal').innerText = cal;
+      document.getElementById('total-p').innerText = p;
+      document.getElementById('total-c').innerText = c;
+      document.getElementById('total-f').innerText = f;
+      
+      localStorage.setItem('dailyLog', JSON.stringify(dailyLog));
+    }
+
+    // Search Open Food Facts API
+    async function searchFood() {
+      const query = document.getElementById('search-input').value.trim();
+      if (!query) return;
+
+      const url = /^\d+$/.test(query)
+        ? `https://world.openfoodfacts.org/api/v2/product/${query}.json`
+        : `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1`;
+
+      try {
+        const res = await fetch(url, { headers: { 'User-Agent': 'FreeMacroTrackerApp/1.0' } });
+        const data = await res.json();
+        
+        let product = data.product || (data.products && data.products[0]);
+        if (product) {
+          const n = product.nutriments || {};
+          showAddForm(
+            product.product_name || query,
+            Math.round(n['energy-kcal_100g'] || n['energy-kcal'] || 0),
+            Math.round(n.proteins_100g || n.proteins || 0),
+            Math.round(n.carbohydrates_100g || n.carbohydrates || 0),
+            Math.round(n.fat_100g || n.fat || 0)
+          );
+        } else {
+          alert('Item not found. Try entering values manually.');
+          showAddForm(query, 0, 0, 0, 0);
+        }
+      } catch (e) {
+        alert('Error connecting to open database.');
+      }
+    }
+
+    // Barcode Scanning
+    function startBarcodeScan() {
+      const video = document.getElementById('interactive');
+      video.style.display = 'block';
+      const codeReader = new ZXing.BrowserMultiFormatReader();
+      codeReader.decodeFromVideoDevice(null, 'interactive', (result, err) => {
+        if (result) {
+          document.getElementById('search-input').value = result.text;
+          codeReader.reset();
+          video.style.display = 'none';
+          searchFood();
+        }
+      });
+    }
+
+    // OCR Scan Nutrition Label via Tesseract.js
+    async function scanNutritionLabel(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const status = document.getElementById('ocr-status');
+      status.innerText = 'Scanning image with OCR... Please wait.';
+
+      const { data: { text } } = await Tesseract.recognize(file, 'eng');
+      status.innerText = 'Scan finished! Extracting numbers...';
+
+      // Simple Regex extraction for OCR text
+      const extract = (regex) => {
+        const match = text.match(regex);
+        return match ? parseInt(match[1]) : 0;
+      };
+
+      const calories = extract(/calories\s*(\d+)/i) || extract(/energy\s*(\d+)/i);
+      const protein = extract(/protein\s*(\d+)/i);
+      const carbs = extract(/total carbohydrate\s*(\d+)/i) || extract(/carbs?\s*(\d+)/i);
+      const fat = extract(/total fat\s*(\d+)/i) || extract(/fat\s*(\d+)/i);
+
+      showAddForm('Scanned Label', calories, protein, carbs, fat);
+      status.innerText = '';
+    }
+
+    function showAddForm(name, cal, p, c, f) {
+      document.getElementById('add-form').style.display = 'block';
+      document.getElementById('item-name').innerText = name;
+      document.getElementById('in-cal').value = cal;
+      document.getElementById('in-p').value = p;
+      document.getElementById('in-c').value = c;
+      document.getElementById('in-f').value = f;
+    }
+
+    function saveItem() {
+      const name = document.getElementById('item-name').innerText;
+      dailyLog.push({
+        name,
+        cal: Number(document.getElementById('in-cal').value),
+        p: Number(document.getElementById('in-p').value),
+        c: Number(document.getElementById('in-c').value),
+        f: Number(document.getElementById('in-f').value)
+      });
+      document.getElementById('add-form').style.display = 'none';
+      updateUI();
+    }
+
+    function clearLog() {
+      dailyLog = [];
+      updateUI();
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
