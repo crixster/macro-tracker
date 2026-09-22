@@ -925,13 +925,12 @@
       });
     }
 
-    // MAIN SEARCH FUNCTION (SERPAPI + USDA FALLBACK)
+    // MAIN SEARCH FUNCTION (SERPAPI WITH CORS PROXY FAILOVER + USDA FALLBACK)
     async function searchFood() {
       const query = document.getElementById('search-input').value.trim();
       const status = document.getElementById('search-status');
       if (!query) return;
 
-      // Ensure key inputs are saved even if onchange hasn't fired
       saveSettings();
 
       const serpKey = localStorage.getItem('serpApiKey');
@@ -940,14 +939,40 @@
         try {
           const targetUrl = `[https://serpapi.com/search.json?q=$](https://serpapi.com/search.json?q=$){encodeURIComponent(query + " macro calories protein carbs fat")}&engine=google&api_key=${serpKey}`;
           
-          let gRes;
-          try {
-            gRes = await fetch(`[https://corsproxy.io/?$](https://corsproxy.io/?$){encodeURIComponent(targetUrl)}`);
-          } catch (err) {
-            gRes = await fetch(`[https://api.allorigins.win/raw?url=$](https://api.allorigins.win/raw?url=$){encodeURIComponent(targetUrl)}`);
+          const proxies = [
+            `[https://corsproxy.io/?$](https://corsproxy.io/?$){encodeURIComponent(targetUrl)}`,
+            `[https://api.allorigins.win/raw?url=$](https://api.allorigins.win/raw?url=$){encodeURIComponent(targetUrl)}`,
+            `[https://thingproxy.freeboard.io/fetch/$](https://thingproxy.freeboard.io/fetch/$){targetUrl}`
+          ];
+
+          let gData = null;
+          let lastErr = "";
+
+          for (const proxyUrl of proxies) {
+            try {
+              const res = await fetch(proxyUrl);
+              
+              if (!res.ok) {
+                lastErr = `Proxy returned HTTP ${res.status}`;
+                continue;
+              }
+
+              const rawText = await res.text();
+              if (rawText.trim().startsWith("<")) {
+                lastErr = "Proxy returned HTML error page instead of JSON";
+                continue;
+              }
+
+              gData = JSON.parse(rawText);
+              if (gData) break;
+            } catch (e) {
+              lastErr = e.message;
+            }
           }
 
-          const gData = await gRes.json();
+          if (!gData) {
+            throw new Error(lastErr || "All CORS proxies failed to return valid JSON");
+          }
 
           if (gData.error) {
             throw new Error(`SerpApi error: ${gData.error}`);
