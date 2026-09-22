@@ -10,100 +10,153 @@
     input, button { padding: 10px; width: 100%; box-sizing: border-box; margin-top: 5px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; }
     button { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
     button:hover { background: #0056b3; }
+    .btn-secondary { background: #6c757d; }
+    .btn-secondary:hover { background: #5a6268; }
+    .btn-danger { background: #dc3545; }
+    .btn-danger:hover { background: #bd2130; }
+    
+    /* Navigation Tabs */
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+    .nav-tabs button { flex: 1; margin: 0; background: #e9ecef; color: #333; }
+    .nav-tabs button.active { background: #007bff; color: white; }
+
     .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; }
     .macro-box { background: #e9ecef; padding: 10px; border-radius: 5px; }
-    video { width: 100%; border-radius: 5px; display: none; margin-bottom: 10px; }
     ul { list-style: none; padding: 0; }
-    li { background: #f8f9fa; border-bottom: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; }
+    li { background: #f8f9fa; border-bottom: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
     .status { font-size: 0.85em; color: #666; font-style: italic; margin-top: -5px; margin-bottom: 10px; }
     .api-config { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 0.9em; }
+    .history-date-header { background: #007bff; color: white; padding: 8px 12px; border-radius: 5px; margin-top: 15px; font-weight: bold; }
   </style>
   <!-- OCR Library -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <!-- Barcode Library -->
-  <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
 <body>
 
   <h2>🥗 Free Macro Tracker</h2>
 
-  <!-- Optional API Key Setup -->
-  <div class="api-config">
-    <label><strong>Google Search API Key (SerpApi):</strong></label>
-    <input type="password" id="serp-key" placeholder="Paste free SerpApi Key here for Google macro search" onchange="saveKey()">
-    <small style="color: #666;">Get a free key at <a href="https://serpapi.com" target="_blank">serpapi.com</a> (250 free searches/mo).</small>
+  <!-- Page Navigation -->
+  <div class="nav-tabs">
+    <button id="tab-tracker-btn" class="active" onclick="switchTab('tracker')">Tracker</button>
+    <button id="tab-history-btn" onclick="switchTab('history')">History</button>
   </div>
 
-  <!-- Daily Summary -->
-  <div class="card">
-    <h3>Today's Totals</h3>
-    <div class="macro-grid">
-      <div class="macro-box"><strong id="total-cal">0</strong><br><small>kcal</small></div>
-      <div class="macro-box"><strong id="total-p">0</strong>g<br><small>Protein</small></div>
-      <div class="macro-box"><strong id="total-c">0</strong>g<br><small>Carbs</small></div>
-      <div class="macro-box"><strong id="total-f">0</strong>g<br><small>Fat</small></div>
+  <!-- TRACKER PAGE -->
+  <div id="page-tracker">
+    <!-- Optional API Key Setup -->
+    <div class="api-config">
+      <label><strong>Google Search API Key (SerpApi):</strong></label>
+      <input type="password" id="serp-key" placeholder="Paste free SerpApi Key here for Google macro search" onchange="saveKey()">
+      <small style="color: #666;">Get a free key at <a href="https://serpapi.com" target="_blank">serpapi.com</a> (250 free searches/mo).</small>
+    </div>
+
+    <!-- Daily Summary -->
+    <div class="card">
+      <h3>Today's Totals</h3>
+      <div class="macro-grid">
+        <div class="macro-box"><strong id="total-cal">0</strong><br><small>kcal</small></div>
+        <div class="macro-box"><strong id="total-p">0</strong>g<br><small>Protein</small></div>
+        <div class="macro-box"><strong id="total-c">0</strong>g<br><small>Carbs</small></div>
+        <div class="macro-box"><strong id="total-f">0</strong>g<br><small>Fat</small></div>
+      </div>
+    </div>
+
+    <!-- Search & Camera Inputs -->
+    <div class="card">
+      <h3>Add Food Item</h3>
+      
+      <!-- Text Search -->
+      <label>Search Food (e.g. "Char Kuey Teow", "Chicken Rice"):</label>
+      <input type="text" id="search-input" placeholder="Type dish or search query...">
+      <button onclick="searchFood()">Search Web & Databases</button>
+      <p id="search-status" class="status"></p>
+
+      <hr>
+
+      <!-- Camera / File Upload for Nutrition Label OCR -->
+      <label>📷 Scan Nutrition Label or Food Image:</label>
+      <input type="file" id="label-image" accept="image/*" capture="environment" onchange="scanNutritionLabel(event)">
+      <p id="ocr-status" class="status"></p>
+
+      <hr>
+
+      <!-- Manual Addition Button -->
+      <button class="btn-secondary" onclick="openManualAdd()">➕ Manually Add Custom Food</button>
+    </div>
+
+    <!-- Confirmation / Manual Form -->
+    <div class="card" id="add-form" style="display:none;">
+      <h3 id="form-title">Confirm Item</h3>
+      <label>Food Name:</label> <input type="text" id="in-name" placeholder="e.g. Rice Bowl">
+      <label>Calories (kcal):</label> <input type="number" id="in-cal" value="0">
+      <label>Protein (g):</label> <input type="number" id="in-p" value="0">
+      <label>Carbs (g):</label> <input type="number" id="in-c" value="0">
+      <label>Fat (g):</label> <input type="number" id="in-f" value="0">
+      <button onclick="saveItem()">Log Meal</button>
+    </div>
+
+    <!-- Logged Items Today -->
+    <div class="card">
+      <h3>Logged Today</h3>
+      <ul id="logged-list"></ul>
+      <button onclick="clearTodayLog()" class="btn-danger">Clear Today's Log</button>
     </div>
   </div>
 
-  <!-- Search & Camera Inputs -->
-  <div class="card">
-    <h3>Add Food Item</h3>
-    
-    <!-- Text Search -->
-    <label>Search Food (e.g. "Char Kuey Teow", "Chicken Rice"):</label>
-    <input type="text" id="search-input" placeholder="Type dish or enter barcode...">
-    <button onclick="searchFood()">Search Web & Databases</button>
-    <p id="search-status" class="status"></p>
-
-    <hr>
-
-    <!-- Barcode Scanner -->
-    <button onclick="startBarcodeScan()">📷 Scan Barcode via Camera</button>
-    <video id="barcode-video"></video>
-
-    <hr>
-
-    <!-- Camera / File Upload for Nutrition Label OCR -->
-    <label>📷 Scan Nutrition Label (Photo):</label>
-    <input type="file" id="label-image" accept="image/*" capture="environment" onchange="scanNutritionLabel(event)">
-    <p id="ocr-status" class="status"></p>
-  </div>
-
-  <!-- Confirmation Form -->
-  <div class="card" id="add-form" style="display:none;">
-    <h3 id="item-name">Confirm Item</h3>
-    <label>Calories (kcal):</label> <input type="number" id="in-cal" value="0">
-    <label>Protein (g):</label> <input type="number" id="in-p" value="0">
-    <label>Carbs (g):</label> <input type="number" id="in-c" value="0">
-    <label>Fat (g):</label> <input type="number" id="in-f" value="0">
-    <button onclick="saveItem()">Log Meal</button>
-  </div>
-
-  <!-- Logged Items -->
-  <div class="card">
-    <h3>Logged Today</h3>
-    <ul id="logged-list"></ul>
-    <button onclick="clearLog()" style="background: #dc3545;">Clear Today's Log</button>
+  <!-- HISTORY PAGE -->
+  <div id="page-history" style="display:none;">
+    <div class="card">
+      <h3>Historical Log Entries</h3>
+      <div id="history-container"></div>
+      <button onclick="clearAllHistory()" class="btn-danger" style="margin-top:15px;">Delete All History</button>
+    </div>
   </div>
 
   <script>
-    let dailyLog = JSON.parse(localStorage.getItem('dailyLog')) || [];
+    // Load historical records from localStorage
+    let allLogs = JSON.parse(localStorage.getItem('macroLogsHistory')) || {};
 
-    // Load saved API key from localStorage
+    function getTodayKey() {
+      const today = new Date();
+      return today.toISOString().split('T')[0]; // YYYY-MM-DD
+    }
+
+    // Saved API key setup
     document.getElementById('serp-key').value = localStorage.getItem('serpApiKey') || '';
 
     function saveKey() {
       localStorage.setItem('serpApiKey', document.getElementById('serp-key').value.trim());
     }
 
-    function updateUI() {
+    function switchTab(tab) {
+      if (tab === 'tracker') {
+        document.getElementById('page-tracker').style.display = 'block';
+        document.getElementById('page-history').style.display = 'none';
+        document.getElementById('tab-tracker-btn').classList.add('active');
+        document.getElementById('tab-history-btn').classList.remove('active');
+      } else {
+        document.getElementById('page-tracker').style.display = 'none';
+        document.getElementById('page-history').style.display = 'block';
+        document.getElementById('tab-tracker-btn').classList.remove('active');
+        document.getElementById('tab-history-btn').classList.add('active');
+        renderHistoryUI();
+      }
+    }
+
+    function updateTodayUI() {
+      const todayKey = getTodayKey();
+      const todayList = allLogs[todayKey] || [];
       const list = document.getElementById('logged-list');
       list.innerHTML = '';
+      
       let cal = 0, p = 0, c = 0, f = 0;
 
-      dailyLog.forEach((item) => {
+      todayList.forEach((item, index) => {
         cal += item.cal; p += item.p; c += item.c; f += item.f;
-        list.innerHTML += `<li><span><strong>${item.name}</strong></span> <span>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</span></li>`;
+        list.innerHTML += `<li>
+          <span><strong>${item.name}</strong><br><small>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</small></span>
+          <button class="btn-danger" style="width:auto; padding: 5px 10px;" onclick="deleteItem('${todayKey}', ${index})">✕</button>
+        </li>`;
       });
 
       document.getElementById('total-cal').innerText = cal;
@@ -111,7 +164,37 @@
       document.getElementById('total-c').innerText = c;
       document.getElementById('total-f').innerText = f;
       
-      localStorage.setItem('dailyLog', JSON.stringify(dailyLog));
+      localStorage.setItem('macroLogsHistory', JSON.stringify(allLogs));
+    }
+
+    function renderHistoryUI() {
+      const container = document.getElementById('history-container');
+      container.innerHTML = '';
+
+      const dates = Object.keys(allLogs).sort().reverse();
+
+      if (dates.length === 0) {
+        container.innerHTML = '<p class="status">No historical entries recorded yet.</p>';
+        return;
+      }
+
+      dates.forEach(date => {
+        const items = allLogs[date];
+        if (items.length === 0) return;
+
+        let totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
+        items.forEach(i => { totalCal += i.cal; totalP += i.p; totalC += i.c; totalF += i.f; });
+
+        let html = `<div class="history-date-header">${date} (Total: ${totalCal} kcal | P:${totalP}g C:${totalC}g F:${totalF}g)</div><ul>`;
+        items.forEach((item, idx) => {
+          html += `<li>
+            <span><strong>${item.name}</strong><br><small>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</small></span>
+            <button class="btn-danger" style="width:auto; padding: 5px 10px;" onclick="deleteItem('${date}', ${idx})">✕</button>
+          </li>`;
+        });
+        html += '</ul>';
+        container.innerHTML += html;
+      });
     }
 
     // MAIN SEARCH FUNCTION
@@ -122,32 +205,11 @@
 
       status.innerText = "Searching...";
 
-      // 1. If query is a Barcode, search Open Food Facts directly
-      if (/^\d+$/.test(query)) {
-        try {
-          const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${query}.json`);
-          const data = await res.json();
-          if (data.status === 1 && data.product) {
-            const n = data.product.nutriments || {};
-            showAddForm(
-              data.product.product_name || query,
-              Math.round(n['energy-kcal_100g'] || n['energy-kcal'] || 0),
-              Math.round(n.proteins_100g || n.proteins || 0),
-              Math.round(n.carbohydrates_100g || n.carbohydrates || 0),
-              Math.round(n.fat_100g || n.fat || 0)
-            );
-            status.innerText = "";
-            return;
-          }
-        } catch (e) { console.error(e); }
-      }
-
-      // 2. Search Google via SerpApi if API Key is configured
+      // Google SerpApi Search
       const serpKey = localStorage.getItem('serpApiKey');
       if (serpKey) {
         status.innerText = "Searching Google results...";
         try {
-          // Use corsproxy.io to allow frontend JavaScript to call SerpApi directly without CORS issues
           const targetUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query + " macro calories protein carbs fat")}&engine=google&api_key=${serpKey}`;
           const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
           
@@ -162,21 +224,23 @@
           }
 
           if (fullText) {
-            // Regex parsing to grab calories, carbs, protein, and fat from Google snippet text
             const extractValue = (labelRegex) => {
               const match = fullText.match(labelRegex);
               if (match) {
                 const num1 = parseInt(match[1]);
                 const num2 = match[2] ? parseInt(match[2]) : num1;
-                return Math.round((num1 + num2) / 2); // Average range if present (e.g. 525 to 703)
+                return Math.round((num1 + num2) / 2);
               }
               return 0;
             };
 
-            const cal = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*(?:kcal|calories)/i);
-            const c = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:carbohydrates|carbs)/i);
+            let cal = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*(?:kcal|calories)/i);
+            const kj = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*kj/i);
+            if (!cal && kj) cal = Math.round(kj / 4.184); // Convert kJ to kcal if calories missing
+
+            const c = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:carbohydrates|carbs|carbohydrate)/i);
             const p = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?protein/i);
-            const f = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?fat/i);
+            const f = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:fat|fats|lipids)/i);
 
             if (cal || p || c || f) {
               showAddForm(query, cal, p, c, f);
@@ -184,12 +248,10 @@
               return;
             }
           }
-        } catch (e) {
-          console.error("Google search error:", e);
-        }
+        } catch (e) { console.error("Google search error:", e); }
       }
 
-      // 3. Fallback to free USDA Food Central API
+      // Fallback to USDA Food Central API
       status.innerText = "Searching USDA database...";
       try {
         const usdaRes = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=${encodeURIComponent(query)}`);
@@ -214,32 +276,17 @@
       } catch (e) { console.error(e); }
 
       status.innerText = "";
-      alert("No automatic macros found. Please enter estimated macros manually below.");
+      alert("No automatic macros found. Opening manual input form.");
       showAddForm(query, 0, 0, 0, 0);
     }
 
-    // Camera Barcode Reader
-    function startBarcodeScan() {
-      const video = document.getElementById('barcode-video');
-      video.style.display = 'block';
-      const codeReader = new ZXing.BrowserMultiFormatReader();
-      codeReader.decodeFromVideoDevice(null, 'barcode-video', (result) => {
-        if (result) {
-          document.getElementById('search-input').value = result.text;
-          codeReader.reset();
-          video.style.display = 'none';
-          searchFood();
-        }
-      });
-    }
-
-    // Camera/Image Nutrition Label OCR Scan via Tesseract.js
+    // Enhanced Nutrition Label Scan with kJ Conversion & Fat/Carb Parsing
     async function scanNutritionLabel(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const status = document.getElementById('ocr-status');
-      status.innerText = 'Scanning nutrition label... Please wait (10-15s).';
+      status.innerText = 'Scanning image with OCR... Please wait.';
 
       try {
         const worker = await Tesseract.createWorker('eng');
@@ -249,6 +296,7 @@
 
         status.innerText = 'Scan complete! Extracting numbers...';
 
+        // Extract value matching list of pattern regexes
         const getVal = (patterns) => {
           for (let p of patterns) {
             const match = text.match(p);
@@ -257,21 +305,56 @@
           return 0;
         };
 
-        const cal = getVal([/calories\s*(\d+)/i, /energy\s*(\d+)/i]);
-        const p = getVal([/protein\s*(\d+)\s*g?/i]);
-        const c = getVal([/total carbohydrate\s*(\d+)\s*g?/i, /carbs?\s*(\d+)\s*g?/i]);
-        const f = getVal([/total fat\s*(\d+)\s*g?/i, /fat\s*(\d+)\s*g?/i]);
+        // Check for Calories first
+        let cal = getVal([
+          /calories\s*[:\-\=]?\s*(\d+)/i,
+          /energy\s*[:\-\=]?\s*(\d+)\s*kcal/i,
+          /(\d+)\s*kcal/i
+        ]);
 
-        showAddForm('Scanned Label', cal, p, c, f);
+        // If no kcal match, check for kJ and convert (1 kcal = 4.184 kJ)
+        if (!cal) {
+          const kj = getVal([
+            /energy\s*[:\-\=]?\s*(\d+)\s*kj/i,
+            /(\d+)\s*kj/i
+          ]);
+          if (kj) cal = Math.round(kj / 4.184);
+        }
+
+        // Expanded regex patterns for Fat and Carbs
+        const fat = getVal([
+          /(?:total\s*)?fat\s*[:\-\=]?\s*(\d+)\s*g/i,
+          /lipids?\s*[:\-\=]?\s*(\d+)\s*g/i,
+          /fat\s*(\d+)/i
+        ]);
+
+        const carbs = getVal([
+          /(?:total\s*)?carbohydrate\s*[:\-\=]?\s*(\d+)\s*g/i,
+          /carbs?\s*[:\-\=]?\s*(\d+)\s*g/i,
+          /carbohydrates?\s*(\d+)/i
+        ]);
+
+        const protein = getVal([
+          /protein\s*[:\-\=]?\s*(\d+)\s*g/i,
+          /protein\s*(\d+)/i
+        ]);
+
+        showAddForm('Scanned Label', cal, protein, carbs, fat);
         status.innerText = '';
       } catch (e) {
         status.innerText = 'Error reading image. Please make sure image is clear.';
       }
     }
 
+    function openManualAdd() {
+      showAddForm('', 0, 0, 0, 0);
+      document.getElementById('form-title').innerText = "Manual Food Entry";
+    }
+
     function showAddForm(name, cal, p, c, f) {
       document.getElementById('add-form').style.display = 'block';
-      document.getElementById('item-name').innerText = name;
+      document.getElementById('form-title').innerText = "Confirm / Edit Item";
+      document.getElementById('in-name').value = name;
       document.getElementById('in-cal').value = cal;
       document.getElementById('in-p').value = p;
       document.getElementById('in-c').value = c;
@@ -279,23 +362,49 @@
     }
 
     function saveItem() {
-      dailyLog.push({
-        name: document.getElementById('item-name').innerText,
+      const name = document.getElementById('in-name').value.trim() || 'Custom Item';
+      const todayKey = getTodayKey();
+
+      if (!allLogs[todayKey]) allLogs[todayKey] = [];
+
+      allLogs[todayKey].push({
+        name: name,
         cal: Number(document.getElementById('in-cal').value),
         p: Number(document.getElementById('in-p').value),
         c: Number(document.getElementById('in-c').value),
         f: Number(document.getElementById('in-f').value)
       });
+
       document.getElementById('add-form').style.display = 'none';
-      updateUI();
+      updateTodayUI();
     }
 
-    function clearLog() {
-      dailyLog = [];
-      updateUI();
+    function deleteItem(dateKey, index) {
+      if (allLogs[dateKey]) {
+        allLogs[dateKey].splice(index, 1);
+        if (allLogs[dateKey].length === 0) delete allLogs[dateKey];
+        updateTodayUI();
+        if (document.getElementById('page-history').style.display === 'block') {
+          renderHistoryUI();
+        }
+      }
     }
 
-    updateUI();
+    function clearTodayLog() {
+      const todayKey = getTodayKey();
+      delete allLogs[todayKey];
+      updateTodayUI();
+    }
+
+    function clearAllHistory() {
+      if (confirm("Are you sure you want to clear all historical log entries?")) {
+        allLogs = {};
+        updateTodayUI();
+        renderHistoryUI();
+      }
+    }
+
+    updateTodayUI();
   </script>
 </body>
 </html>
