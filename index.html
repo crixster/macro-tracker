@@ -1,60 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><!DOCTYPE html>
-<html lang="en">
-<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Free Macro Tracker</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f4f9; color: #333; }
-    .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 15px; }
-    input, button, select { padding: 10px; width: 100%; box-sizing: border-box; margin-top: 5px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95em; }
-    button { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-    button:hover { background: #0056b3; }
-    .btn-secondary { background: #6c757d; }
-    .btn-secondary:hover { background: #5a6268; }
-    .btn-danger { background: #dc3545; }
-    .btn-danger:hover { background: #bd2130; }
-    .btn-success { background: #28a745; }
-    .btn-success:hover { background: #218838; }
-    .btn-warning { background: #ffc107; color: #212529; }
-    .btn-warning:hover { background: #e0a800; }
-    .btn-sm { padding: 5px 8px; width: auto; font-size: 0.82em; }
+    :root {
+      --bg: #f2f4f8;
+      --text: #26272b;
+      --text-muted: #6b7280;
+      --card-bg: #ffffff;
+      --border: #e3e6ec;
+      --primary: #4f7cff;
+      --primary-dark: #3a63e0;
+      --secondary: #6c757d;
+      --secondary-dark: #565e64;
+      --success: #22a06b;
+      --success-dark: #1c8659;
+      --danger: #e5484d;
+      --danger-dark: #c93a3f;
+      --warning: #f5a524;
+      --warning-dark: #d68f13;
+      --warning-text: #3d2c00;
+      --track-bg: #e9ecef;
+      --shadow: 0 2px 10px rgba(20,20,40,0.06);
+      --radius: 14px;
+    }
+    [data-theme="dark"] {
+      --bg: #14161c;
+      --text: #eceef2;
+      --text-muted: #9aa0ab;
+      --card-bg: #1d2027;
+      --border: #2b2f38;
+      --primary: #6d8dff;
+      --primary-dark: #5474e6;
+      --track-bg: #2a2e37;
+      --shadow: 0 2px 14px rgba(0,0,0,0.4);
+      --warning-text: #1c1400;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px 16px 40px;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    h2, h3 { margin: 0 0 4px 0; }
+    label { display: block; font-size: 0.9em; color: var(--text-muted); margin-bottom: 2px; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+    .card {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 15px;
+      border: 1px solid var(--border);
+    }
+
+    input, button, select {
+      padding: 11px 12px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.95em;
+      background: var(--card-bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79,124,255,0.15);
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    button:hover { background: var(--primary-dark); }
+    button:active { transform: scale(0.98); }
+    .btn-secondary { background: var(--secondary); }
+    .btn-secondary:hover { background: var(--secondary-dark); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: var(--danger-dark); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: var(--success-dark); }
+    .btn-warning { background: var(--warning); color: var(--warning-text); }
+    .btn-warning:hover { background: var(--warning-dark); }
+    .btn-sm { padding: 6px 10px; width: auto; font-size: 0.82em; margin: 0; }
+
+    /* Header */
+    .app-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; gap: 10px; }
+    .app-subtitle { margin: 2px 0 0; font-size: 0.85em; color: var(--text-muted); }
+    .icon-btn {
+      width: auto; background: var(--card-bg); color: var(--text); border: 1px solid var(--border);
+      font-size: 1.1em; padding: 8px 10px; margin: 0; box-shadow: var(--shadow); border-radius: 10px;
+      line-height: 1;
+    }
+    .icon-btn:hover { background: var(--track-bg); }
 
     /* Navigation Tabs */
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
-    .nav-tabs button { flex: 1; margin: 0; background: #e9ecef; color: #495057; border-radius: 8px; }
-    .nav-tabs button.active { background: #007bff; color: white; }
+    .nav-tabs {
+      display: flex; gap: 8px; margin-bottom: 15px;
+      position: sticky; top: 0; z-index: 10;
+      background: var(--bg); padding: 8px 0 4px;
+    }
+    .nav-tabs button { flex: 1; margin: 0; background: var(--track-bg); color: var(--text-muted); border-radius: 10px; font-size: 0.92em; }
+    .nav-tabs button.active { background: var(--primary); color: white; }
 
     /* Collapsible Settings */
-    details summary { font-weight: bold; cursor: pointer; padding: 5px 0; color: #007bff; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    details summary {
+      font-weight: bold; cursor: pointer; padding: 4px 0; color: var(--primary);
+      list-style: none; display: flex; justify-content: space-between; align-items: center;
+    }
     details summary::-webkit-details-marker { display: none; }
+    details summary span { transition: transform 0.2s ease; display: inline-block; }
+    details[open] summary span { transform: rotate(180deg); }
     .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    .settings-grid small { color: var(--text-muted); }
 
     /* Progress Bars */
     .target-box { margin-bottom: 12px; }
-    .target-header { display: flex; justify-content: space-between; font-size: 0.88em; font-weight: bold; margin-bottom: 4px; }
-    .progress-bar-bg { background: #e9ecef; border-radius: 20px; height: 14px; width: 100%; overflow: hidden; position: relative; }
+    .target-header { display: flex; justify-content: space-between; font-size: 0.88em; font-weight: bold; margin-bottom: 4px; gap: 8px; }
+    .target-header > span:first-child { color: var(--text); }
+    .progress-bar-bg { background: var(--track-bg); border-radius: 20px; height: 14px; width: 100%; overflow: hidden; position: relative; }
     .progress-bar-fill { height: 100%; border-radius: 20px; width: 0%; transition: width 0.4s ease, background-color 0.4s; }
-    .fill-normal { background: #28a745; }
-    .fill-over { background: #dc3545; }
+    .fill-normal { background: var(--success); }
+    .fill-over { background: var(--danger); }
 
     ul { list-style: none; padding: 0; margin: 0; }
-    li { background: #f8f9fa; border-bottom: 1px solid #e9ecef; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; margin-bottom: 5px; }
-    .status { font-size: 0.85em; color: #007bff; font-weight: bold; margin-top: 5px; margin-bottom: 10px; word-break: break-word; }
-    .history-header { background: #007bff; color: white; padding: 10px 12px; border-radius: 6px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
+    li {
+      background: var(--bg); border: 1px solid var(--border); padding: 10px 12px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-radius: 10px; margin-bottom: 8px; gap: 8px;
+    }
+    li:last-child { margin-bottom: 0; }
+    li small { color: var(--text-muted); }
+    .empty-state { color: var(--text-muted); font-style: italic; justify-content: center; text-align: center; background: transparent; border-style: dashed; }
+
+    .status { font-size: 0.85em; color: var(--primary); font-weight: bold; margin-top: 5px; margin-bottom: 10px; word-break: break-word; min-height: 1em; }
+    .hint { font-size: 0.82em; color: var(--text-muted); margin: 2px 0 10px; }
+
+    .history-header {
+      background: var(--primary); color: white; padding: 10px 12px; border-radius: 10px;
+      margin-top: 15px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
     .history-header-title { font-weight: bold; font-size: 0.9em; }
-    .flex-row { display: flex; gap: 6px; align-items: center; }
-    .modal-overlay { background: #fdfdfe; border: 2px solid #007bff; padding: 15px; border-radius: 8px; margin-top: 10px; }
+    .flex-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .flex-row > button { margin: 0; width: auto; flex: 1; }
+    .flex-row > .btn-sm { flex: 0 0 auto; }
+
+    .modal-overlay {
+      background: var(--card-bg); border: 2px solid var(--primary); padding: 16px;
+      border-radius: var(--radius); margin-top: 10px; box-shadow: 0 6px 24px rgba(79,124,255,0.15);
+    }
+
+    /* Divider */
+    .divider { display: flex; align-items: center; text-align: center; color: var(--text-muted); font-size: 0.78em; margin: 14px 0; }
+    .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
+    .divider span { padding: 0 10px; }
+
+    /* Custom file upload button */
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .file-upload-btn {
+      display: block; text-align: center; background: var(--secondary); color: #fff;
+      padding: 11px; border-radius: 8px; cursor: pointer; font-weight: bold;
+      margin-top: 5px; margin-bottom: 6px; transition: background 0.15s ease;
+    }
+    .file-upload-btn:hover { background: var(--secondary-dark); }
+
+    /* Target edit modal */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(10,12,20,0.55);
+      z-index: 100; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+      width: 100%; max-width: 420px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .modal-header h3 { margin: 0; }
+
+    /* Toasts */
+    .toast-container {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; gap: 8px; z-index: 200;
+      width: calc(100% - 32px); max-width: 560px; align-items: center; pointer-events: none;
+    }
+    .toast {
+      background: #26272b; color: #fff; padding: 10px 16px; border-radius: 10px;
+      font-size: 0.9em; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      opacity: 0; transform: translateY(10px); transition: opacity 0.25s ease, transform 0.25s ease;
+      max-width: 100%; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast-success { background: var(--success-dark); }
+    .toast-error { background: var(--danger-dark); }
   </style>
   <!-- OCR Library Fallback -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 
-  <h2>🥗 Free Macro Tracker</h2>
+  <div class="app-header">
+    <div>
+      <h2>🥗 Free Macro Tracker</h2>
+      <p class="app-subtitle" id="today-date"></p>
+    </div>
+    <button id="theme-toggle-btn" class="icon-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+  </div>
 
   <!-- Collapsible Settings Panel -->
   <div class="card">
@@ -80,9 +249,9 @@
 
   <!-- Page Navigation -->
   <div class="nav-tabs">
-    <button id="tab-tracker-btn" class="active" onclick="switchTab('tracker')">Tracker</button>
+    <button id="tab-tracker-btn" class="active" onclick="switchTab('tracker')">🍽️ Tracker</button>
     <button id="tab-fav-btn" onclick="switchTab('favorites')">⭐ Favorites</button>
-    <button id="tab-history-btn" onclick="switchTab('history')">History</button>
+    <button id="tab-history-btn" onclick="switchTab('history')">📜 History</button>
   </div>
 
   <!-- TRACKER PAGE -->
@@ -93,7 +262,7 @@
         <h3 style="margin:0;">Today's Target Progress</h3>
         <button class="btn-secondary btn-sm" onclick="editDayTarget(getTodayKey())">🎯 Edit Today's Target</button>
       </div>
-      
+
       <!-- Calories -->
       <div class="target-box" style="margin-top:10px;">
         <div class="target-header">
@@ -137,24 +306,25 @@
       <select id="fav-dropdown" onchange="selectFavorite(this.value)">
         <option value="">-- Select a Saved Favorite --</option>
       </select>
+      <p class="hint" id="fav-dropdown-hint" style="display:none;">No favorites yet — save one from the form below with ⭐ Save Favorite.</p>
     </div>
 
     <!-- Search & Scan Inputs -->
     <div class="card">
       <h3>Add Food Item</h3>
-      
+
       <label>Search Food (e.g. "Char Kuey Teow", "Chicken Rice"):</label>
-      <input type="text" id="search-input" placeholder="Type dish or search query...">
-      <button onclick="searchFood()">Search Web & Databases</button>
+      <input type="text" id="search-input" placeholder="Type dish or search query..." onkeydown="if(event.key==='Enter'){event.preventDefault();searchFood();}">
+      <button onclick="searchFood()">🔍 Search Web & Databases</button>
       <p id="search-status" class="status"></p>
 
-      <hr>
+      <div class="divider"><span>OR</span></div>
 
-      <label>📷 Scan Food Photo or Nutrition Label (Gemini AI / OCR):</label>
-      <input type="file" id="label-image" accept="image/*" capture="environment" onchange="scanFoodImage(event)">
+      <label id="file-upload-label" class="file-upload-btn" for="label-image">📷 Scan Food Photo or Nutrition Label</label>
+      <input type="file" id="label-image" accept="image/*" capture="environment" onchange="scanFoodImage(event)" class="visually-hidden">
       <p id="ocr-status" class="status"></p>
 
-      <hr>
+      <div class="divider"><span>OR</span></div>
 
       <button class="btn-secondary" onclick="openManualAdd()">➕ Manually Add Custom Food</button>
     </div>
@@ -167,7 +337,7 @@
       <label>Protein (g):</label> <input type="number" id="in-p" value="0">
       <label>Carbs (g):</label> <input type="number" id="in-c" value="0">
       <label>Fat (g):</label> <input type="number" id="in-f" value="0">
-      
+
       <div class="flex-row">
         <button id="save-item-btn" onclick="saveItem()">Log Meal</button>
         <button class="btn-secondary" onclick="saveCurrentToFavorites()">⭐ Save Favorite</button>
@@ -203,13 +373,69 @@
     </div>
   </div>
 
+  <!-- Edit Target Modal -->
+  <div class="modal-backdrop" id="target-modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="target-modal-title">Edit Target</h3>
+        <button class="icon-btn" onclick="closeTargetModal()" aria-label="Close">✕</button>
+      </div>
+      <p class="hint" style="margin-top:0;">Set custom macro targets for this day. Leave a field blank to keep its current value.</p>
+      <div class="settings-grid">
+        <div><small>Calories (kcal):</small><input type="number" id="tm-cal"></div>
+        <div><small>Protein (g):</small><input type="number" id="tm-p"></div>
+        <div><small>Carbs (g):</small><input type="number" id="tm-c"></div>
+        <div><small>Fat (g):</small><input type="number" id="tm-f"></div>
+      </div>
+      <div class="flex-row">
+        <button onclick="saveTargetModal()">Save Target</button>
+        <button class="btn-secondary" onclick="closeTargetModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toast-container" class="toast-container"></div>
+
   <script>
+    // THEME
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const btn = document.getElementById('theme-toggle-btn');
+      if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+      localStorage.setItem('macroTheme', theme);
+    }
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+    (function initTheme() {
+      const saved = localStorage.getItem('macroTheme');
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(saved || (prefersDark ? 'dark' : 'light'));
+    })();
+
+    // TOASTS
+    function showToast(msg, type) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast' + (type ? ' toast-' + type : '');
+      toast.textContent = msg;
+      container.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add('show'));
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    }
+
     let allLogs = JSON.parse(localStorage.getItem('macroLogsHistory')) || {};
     let favorites = JSON.parse(localStorage.getItem('macroFavorites')) || [];
     let globalTargets = JSON.parse(localStorage.getItem('macroTargets')) || { cal: 2000, p: 150, c: 200, f: 65 };
     let dailyTargets = JSON.parse(localStorage.getItem('macroDailyTargets')) || {};
 
     let editingContext = null;
+    let targetModalDateKey = null;
 
     function getTodayKey() {
       return new Date().toISOString().split('T')[0];
@@ -226,6 +452,8 @@
     document.getElementById('target-c').value = globalTargets.c;
     document.getElementById('target-f').value = globalTargets.f;
 
+    document.getElementById('today-date').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
     function saveSettings() {
       localStorage.setItem('geminiApiKey', document.getElementById('gemini-key').value.trim());
       localStorage.setItem('serpApiKey', document.getElementById('serp-key').value.trim());
@@ -237,32 +465,49 @@
       };
       localStorage.setItem('macroTargets', JSON.stringify(globalTargets));
       updateTodayUI();
+      showToast('Settings saved', 'success');
     }
 
+    // TARGET EDIT MODAL
     function editDayTarget(dateKey) {
+      targetModalDateKey = dateKey;
       const current = getTargetForDate(dateKey);
-      const newCal = prompt(`Calories Target for ${dateKey} (kcal):`, current.cal);
-      if (newCal === null) return;
-      const newP = prompt(`Protein Target for ${dateKey} (g):`, current.p);
-      if (newP === null) return;
-      const newC = prompt(`Carbs Target for ${dateKey} (g):`, current.c);
-      if (newC === null) return;
-      const newF = prompt(`Fat Target for ${dateKey} (g):`, current.f);
-      if (newF === null) return;
+      document.getElementById('target-modal-title').innerText = dateKey === getTodayKey() ? "Edit Today's Target" : `Edit Target — ${dateKey}`;
+      document.getElementById('tm-cal').value = current.cal;
+      document.getElementById('tm-p').value = current.p;
+      document.getElementById('tm-c').value = current.c;
+      document.getElementById('tm-f').value = current.f;
+      document.getElementById('target-modal-backdrop').classList.add('open');
+    }
 
-      dailyTargets[dateKey] = {
-        cal: Number(newCal) || current.cal,
-        p: Number(newP) || current.p,
-        c: Number(newC) || current.c,
-        f: Number(newF) || current.f
+    function closeTargetModal() {
+      document.getElementById('target-modal-backdrop').classList.remove('open');
+      targetModalDateKey = null;
+    }
+
+    function saveTargetModal() {
+      if (!targetModalDateKey) return;
+      const current = getTargetForDate(targetModalDateKey);
+      dailyTargets[targetModalDateKey] = {
+        cal: Number(document.getElementById('tm-cal').value) || current.cal,
+        p: Number(document.getElementById('tm-p').value) || current.p,
+        c: Number(document.getElementById('tm-c').value) || current.c,
+        f: Number(document.getElementById('tm-f').value) || current.f
       };
 
       localStorage.setItem('macroDailyTargets', JSON.stringify(dailyTargets));
+      const savedDateKey = targetModalDateKey;
+      closeTargetModal();
       updateTodayUI();
       if (document.getElementById('page-history').style.display === 'block') {
         renderHistoryUI();
       }
+      showToast(`Target updated for ${savedDateKey}`, 'success');
     }
+
+    document.getElementById('target-modal-backdrop').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeTargetModal();
+    });
 
     function switchTab(tab) {
       document.getElementById('page-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
@@ -286,7 +531,7 @@
 
       if (current > target) {
         barEl.className = 'progress-bar-fill fill-over';
-        remEl.innerHTML = `<span style="color:#dc3545; font-weight:bold;">${current - target}${unit} OVER</span>`;
+        remEl.innerHTML = `<span style="color:var(--danger); font-weight:bold;">${current - target}${unit} OVER</span>`;
       } else {
         barEl.className = 'progress-bar-fill fill-normal';
         remEl.innerText = `${target - current}${unit} left`;
@@ -299,8 +544,12 @@
       const todayTarget = getTargetForDate(todayKey);
       const list = document.getElementById('logged-list');
       list.innerHTML = '';
-      
+
       let cal = 0, p = 0, c = 0, f = 0;
+
+      if (todayList.length === 0) {
+        list.innerHTML = '<li class="empty-state">No meals logged yet today — add something above!</li>';
+      }
 
       todayList.forEach((item, index) => {
         cal += item.cal; p += item.p; c += item.c; f += item.f;
@@ -360,10 +609,12 @@
       if (editingContext) {
         allLogs[editingContext.dateKey][editingContext.index] = { name, cal, p, c, f };
         editingContext = null;
+        showToast(`"${name}" updated`, 'success');
       } else {
         const todayKey = getTodayKey();
         if (!allLogs[todayKey]) allLogs[todayKey] = [];
         allLogs[todayKey].push({ name, cal, p, c, f });
+        showToast(`"${name}" logged`, 'success');
       }
 
       document.getElementById('add-form').style.display = 'none';
@@ -403,52 +654,55 @@
     }
 
     // MULTI-MODEL GEMINI FALLBACK CALLER
-  async function fetchGeminiVision(base64Data, geminiKey) {
-  const endpoints = [
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${geminiKey}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiKey}`
-  ];
+    async function fetchGeminiVision(base64Data, geminiKey) {
+      const endpoints = [
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiKey}`
+      ];
 
-  let lastErrorMessage = '';
+      let lastErrorMessage = '';
 
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
-              { text: 'Analyze this food photo or nutrition label. Identify the dish or product name, and estimate or read its total nutritional values: calories (kcal), protein (g), carbs (g), and fat (g). Return ONLY a raw JSON object with keys: "name", "cal", "p", "c", "f". Do not include markdown, backticks, or additional text.' }
-            ]
-          }]
-        })
-      });
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
+                  { text: 'Analyze this food photo or nutrition label. Identify the dish or product name, and estimate or read its total nutritional values: calories (kcal), protein (g), carbs (g), and fat (g). Return ONLY a raw JSON object with keys: "name", "cal", "p", "c", "f". Do not include markdown, backticks, or additional text.' }
+                ]
+              }]
+            })
+          });
 
-      const data = await res.json();
-      if (res.ok && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-        return data.candidates[0].content.parts[0].text.trim();
+          const data = await res.json();
+          if (res.ok && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+            return data.candidates[0].content.parts[0].text.trim();
+          }
+
+          if (data.error) {
+            lastErrorMessage = `${data.error.code || res.status}: ${data.error.message}`;
+          }
+        } catch (err) {
+          lastErrorMessage = err.message;
+        }
       }
 
-      if (data.error) {
-        lastErrorMessage = `${data.error.code || res.status}: ${data.error.message}`;
-      }
-    } catch (err) {
-      lastErrorMessage = err.message;
+      throw new Error(lastErrorMessage || 'Failed to reach any valid Gemini vision endpoint.');
     }
-  }
-
-  throw new Error(lastErrorMessage || 'Failed to reach any valid Gemini vision endpoint.');
-}
 
     // MAIN SCAN FUNCTION WITH GEMINI + OCR FALLBACK
     async function scanFoodImage(event) {
       const file = event.target.files[0];
       if (!file) return;
+
+      const fileLabel = document.getElementById('file-upload-label');
+      if (fileLabel) fileLabel.textContent = '📷 ' + file.name;
 
       const status = document.getElementById('ocr-status');
       const geminiKey = localStorage.getItem('geminiApiKey');
@@ -474,7 +728,7 @@
           return;
         } catch (e) {
           console.error('Gemini error:', e);
-          status.innerHTML = `<span style="color:#dc3545;">⚠️ Gemini Error: ${e.message || 'Request failed'}. Falling back to OCR label scan...</span>`;
+          status.innerHTML = `<span style="color:var(--danger);">⚠️ Gemini Error: ${e.message || 'Request failed'}. Falling back to OCR label scan...</span>`;
           await new Promise(r => setTimeout(r, 2500));
         }
       } else {
@@ -541,10 +795,13 @@
     // FAVORITES LOGIC
     function updateFavDropdown() {
       const dropdown = document.getElementById('fav-dropdown');
+      const hint = document.getElementById('fav-dropdown-hint');
       dropdown.innerHTML = '<option value="">-- Select a Saved Favorite --</option>';
       favorites.forEach((fav, i) => {
         dropdown.innerHTML += `<option value="${i}">${fav.name} (${fav.cal} kcal | P:${fav.p}g C:${fav.c}g F:${fav.f}g)</option>`;
       });
+      if (hint) hint.style.display = favorites.length === 0 ? 'block' : 'none';
+      dropdown.style.display = favorites.length === 0 ? 'none' : 'block';
     }
 
     function selectFavorite(index) {
@@ -571,7 +828,7 @@
       favorites.push({ name, cal, p, c, f });
       localStorage.setItem('macroFavorites', JSON.stringify(favorites));
       updateFavDropdown();
-      alert(`"${name}" saved to Favorites!`);
+      showToast(`"${name}" saved to Favorites`, 'success');
     }
 
     function deleteFavorite(index) {
@@ -585,7 +842,7 @@
       const list = document.getElementById('favorites-list');
       list.innerHTML = '';
       if (favorites.length === 0) {
-        list.innerHTML = '<p class="status">No favorites saved yet.</p>';
+        list.innerHTML = '<li class="empty-state">No favorites saved yet. Add an item on the Tracker page, then tap ⭐ Save Favorite.</li>';
         return;
       }
       favorites.forEach((fav, i) => {
@@ -605,7 +862,7 @@
       const dates = Object.keys(allLogs).sort().reverse();
 
       if (dates.length === 0) {
-        alert("No logs available to export.");
+        showToast('No logs available to export.', 'error');
         return;
       }
 
@@ -624,6 +881,7 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      showToast('History exported as CSV', 'success');
     }
 
     function renderHistoryUI() {
@@ -632,7 +890,7 @@
       const dates = Object.keys(allLogs).sort().reverse();
 
       if (dates.length === 0) {
-        container.innerHTML = '<p class="status">No historical entries recorded yet.</p>';
+        container.innerHTML = '<p class="status" style="color:var(--text-muted);">No historical entries recorded yet.</p>';
         return;
       }
 
@@ -682,9 +940,9 @@
       if (serpKey) {
         status.innerText = "Searching Google results...";
         try {
-          const targetUrl = `[https://serpapi.com/search.json?q=$](https://serpapi.com/search.json?q=$){encodeURIComponent(query + " macro calories protein carbs fat")}&engine=google&api_key=${serpKey}`;
-          const proxyUrl = `[https://corsproxy.io/?$](https://corsproxy.io/?$){encodeURIComponent(targetUrl)}`;
-          
+          const targetUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query + " macro calories protein carbs fat")}&engine=google&api_key=${serpKey}`;
+          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
           const gRes = await fetch(proxyUrl);
           const gData = await gRes.json();
 
@@ -726,7 +984,7 @@
 
       status.innerText = "Searching USDA database...";
       try {
-        const usdaRes = await fetch(`[https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=$](https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=$){encodeURIComponent(query)}`);
+        const usdaRes = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=${encodeURIComponent(query)}`);
         const usdaData = await usdaRes.json();
 
         if (usdaData.foods && usdaData.foods.length > 0) {
@@ -749,7 +1007,7 @@
       } catch (e) { console.error(e); }
 
       status.innerText = "";
-      alert("No automatic macros found. Opening manual input form.");
+      showToast('No automatic macros found. Opening manual input form.');
       editingContext = null;
       showAddForm(query, 0, 0, 0, 0);
     }
@@ -771,6 +1029,7 @@
       document.getElementById('in-p').value = p;
       document.getElementById('in-c').value = c;
       document.getElementById('in-f').value = f;
+      document.getElementById('add-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function deleteItem(dateKey, index) {
@@ -788,6 +1047,7 @@
       const todayKey = getTodayKey();
       delete allLogs[todayKey];
       updateTodayUI();
+      showToast("Today's log cleared");
     }
 
     function clearAllHistory() {
@@ -795,782 +1055,7 @@
         allLogs = {};
         updateTodayUI();
         renderHistoryUI();
-      }
-    }
-
-    updateTodayUI();
-  </script>
-</body>
-</html>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Free Macro Tracker</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f4f9; color: #333; }
-    .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 15px; }
-    input, button, select { padding: 10px; width: 100%; box-sizing: border-box; margin-top: 5px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95em; }
-    button { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-    button:hover { background: #0056b3; }
-    .btn-secondary { background: #6c757d; }
-    .btn-secondary:hover { background: #5a6268; }
-    .btn-danger { background: #dc3545; }
-    .btn-danger:hover { background: #bd2130; }
-    .btn-success { background: #28a745; }
-    .btn-success:hover { background: #218838; }
-    .btn-warning { background: #ffc107; color: #212529; }
-    .btn-warning:hover { background: #e0a800; }
-    .btn-sm { padding: 5px 8px; width: auto; font-size: 0.82em; }
-
-    /* Navigation Tabs */
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
-    .nav-tabs button { flex: 1; margin: 0; background: #e9ecef; color: #495057; border-radius: 8px; }
-    .nav-tabs button.active { background: #007bff; color: white; }
-
-    /* Collapsible Settings */
-    details summary { font-weight: bold; cursor: pointer; padding: 5px 0; color: #007bff; list-style: none; display: flex; justify-content: space-between; align-items: center; }
-    details summary::-webkit-details-marker { display: none; }
-    .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
-
-    /* Progress Bars */
-    .target-box { margin-bottom: 12px; }
-    .target-header { display: flex; justify-content: space-between; font-size: 0.88em; font-weight: bold; margin-bottom: 4px; }
-    .progress-bar-bg { background: #e9ecef; border-radius: 20px; height: 14px; width: 100%; overflow: hidden; position: relative; }
-    .progress-bar-fill { height: 100%; border-radius: 20px; width: 0%; transition: width 0.4s ease, background-color 0.4s; }
-    .fill-normal { background: #28a745; }
-    .fill-over { background: #dc3545; }
-
-    ul { list-style: none; padding: 0; margin: 0; }
-    li { background: #f8f9fa; border-bottom: 1px solid #e9ecef; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; margin-bottom: 5px; }
-    .status { font-size: 0.85em; color: #007bff; font-weight: bold; margin-top: 5px; margin-bottom: 10px; word-break: break-word; }
-    .history-header { background: #007bff; color: white; padding: 10px 12px; border-radius: 6px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
-    .history-header-title { font-weight: bold; font-size: 0.9em; }
-    .flex-row { display: flex; gap: 6px; align-items: center; }
-    .modal-overlay { background: #fdfdfe; border: 2px solid #007bff; padding: 15px; border-radius: 8px; margin-top: 10px; }
-  </style>
-  <!-- OCR Library Fallback -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-</head>
-<body>
-
-  <h2>🥗 Free Macro Tracker</h2>
-
-  <!-- Collapsible Settings Panel -->
-  <div class="card">
-    <details id="settings-details">
-      <summary>⚙️ App Settings & Default Targets <span>▼</span></summary>
-      <div style="margin-top: 10px;">
-        <label><strong>Google Gemini API Key (Free AI Vision Scan):</strong></label>
-        <input type="password" id="gemini-key" placeholder="Paste Gemini API Key from Google AI Studio" onchange="saveSettings()">
-
-        <label><strong>Google SerpApi Key (Optional Web Search):</strong></label>
-        <input type="password" id="serp-key" placeholder="Paste SerpApi Key for Google Macro Search" onchange="saveSettings()">
-
-        <label><strong>Default Daily Targets:</strong></label>
-        <div class="settings-grid">
-          <div><small>Calories (kcal):</small><input type="number" id="target-cal" value="2000" onchange="saveSettings()"></div>
-          <div><small>Protein (g):</small><input type="number" id="target-p" value="150" onchange="saveSettings()"></div>
-          <div><small>Carbs (g):</small><input type="number" id="target-c" value="200" onchange="saveSettings()"></div>
-          <div><small>Fat (g):</small><input type="number" id="target-f" value="65" onchange="saveSettings()"></div>
-        </div>
-      </div>
-    </details>
-  </div>
-
-  <!-- Page Navigation -->
-  <div class="nav-tabs">
-    <button id="tab-tracker-btn" class="active" onclick="switchTab('tracker')">Tracker</button>
-    <button id="tab-fav-btn" onclick="switchTab('favorites')">⭐ Favorites</button>
-    <button id="tab-history-btn" onclick="switchTab('history')">History</button>
-  </div>
-
-  <!-- TRACKER PAGE -->
-  <div id="page-tracker">
-    <!-- Macro Targets & Progress Bars -->
-    <div class="card">
-      <div class="flex-row" style="justify-content: space-between;">
-        <h3 style="margin:0;">Today's Target Progress</h3>
-        <button class="btn-secondary btn-sm" onclick="editDayTarget(getTodayKey())">🎯 Edit Today's Target</button>
-      </div>
-      
-      <!-- Calories -->
-      <div class="target-box" style="margin-top:10px;">
-        <div class="target-header">
-          <span>Calories: <span id="val-cal">0</span> / <span id="target-val-cal">2000</span> kcal</span>
-          <span id="rem-cal">2000 kcal left</span>
-        </div>
-        <div class="progress-bar-bg"><div id="bar-cal" class="progress-bar-fill fill-normal"></div></div>
-      </div>
-
-      <!-- Protein -->
-      <div class="target-box">
-        <div class="target-header">
-          <span>Protein: <span id="val-p">0</span> / <span id="target-val-p">150</span>g</span>
-          <span id="rem-p">150g left</span>
-        </div>
-        <div class="progress-bar-bg"><div id="bar-p" class="progress-bar-fill fill-normal"></div></div>
-      </div>
-
-      <!-- Carbs -->
-      <div class="target-box">
-        <div class="target-header">
-          <span>Carbs: <span id="val-c">0</span> / <span id="target-val-c">200</span>g</span>
-          <span id="rem-c">200g left</span>
-        </div>
-        <div class="progress-bar-bg"><div id="bar-c" class="progress-bar-fill fill-normal"></div></div>
-      </div>
-
-      <!-- Fat -->
-      <div class="target-box">
-        <div class="target-header">
-          <span>Fat: <span id="val-f">0</span> / <span id="target-val-f">65</span>g</span>
-          <span id="rem-f">65g left</span>
-        </div>
-        <div class="progress-bar-bg"><div id="bar-f" class="progress-bar-fill fill-normal"></div></div>
-      </div>
-    </div>
-
-    <!-- Quick Add from Favorites -->
-    <div class="card">
-      <h3>⭐ Quick-Add Favorite</h3>
-      <select id="fav-dropdown" onchange="selectFavorite(this.value)">
-        <option value="">-- Select a Saved Favorite --</option>
-      </select>
-    </div>
-
-    <!-- Search & Scan Inputs -->
-    <div class="card">
-      <h3>Add Food Item</h3>
-      
-      <label>Search Food (e.g. "Char Kuey Teow", "Chicken Rice"):</label>
-      <input type="text" id="search-input" placeholder="Type dish or search query...">
-      <button onclick="searchFood()">Search Web & Databases</button>
-      <p id="search-status" class="status"></p>
-
-      <hr>
-
-      <label>📷 Scan Food Photo or Nutrition Label (Gemini AI / OCR):</label>
-      <input type="file" id="label-image" accept="image/*" capture="environment" onchange="scanFoodImage(event)">
-      <p id="ocr-status" class="status"></p>
-
-      <hr>
-
-      <button class="btn-secondary" onclick="openManualAdd()">➕ Manually Add Custom Food</button>
-    </div>
-
-    <!-- Confirmation / Edit Form -->
-    <div class="card modal-overlay" id="add-form" style="display:none;">
-      <h3 id="form-title">Confirm Item</h3>
-      <label>Food Name:</label> <input type="text" id="in-name" placeholder="e.g. Rice Bowl">
-      <label>Calories (kcal):</label> <input type="number" id="in-cal" value="0">
-      <label>Protein (g):</label> <input type="number" id="in-p" value="0">
-      <label>Carbs (g):</label> <input type="number" id="in-c" value="0">
-      <label>Fat (g):</label> <input type="number" id="in-f" value="0">
-      
-      <div class="flex-row">
-        <button id="save-item-btn" onclick="saveItem()">Log Meal</button>
-        <button class="btn-secondary" onclick="saveCurrentToFavorites()">⭐ Save Favorite</button>
-        <button class="btn-danger btn-sm" onclick="closeForm()">Cancel</button>
-      </div>
-    </div>
-
-    <!-- Logged Items Today -->
-    <div class="card">
-      <h3>Logged Today</h3>
-      <ul id="logged-list"></ul>
-      <button onclick="clearTodayLog()" class="btn-danger" style="margin-top:10px;">Clear Today's Log</button>
-    </div>
-  </div>
-
-  <!-- FAVORITES PAGE -->
-  <div id="page-favorites" style="display:none;">
-    <div class="card">
-      <h3>Saved Favorites</h3>
-      <ul id="favorites-list"></ul>
-    </div>
-  </div>
-
-  <!-- HISTORY PAGE -->
-  <div id="page-history" style="display:none;">
-    <div class="card">
-      <div class="flex-row" style="justify-content: space-between; margin-bottom: 10px;">
-        <h3 style="margin:0;">Historical Log Entries</h3>
-        <button class="btn-success btn-sm" onclick="exportHistoryCSV()">📥 Export History (CSV)</button>
-      </div>
-      <div id="history-container"></div>
-      <button onclick="clearAllHistory()" class="btn-danger" style="margin-top:15px;">Delete All History</button>
-    </div>
-  </div>
-
-  <script>
-    let allLogs = JSON.parse(localStorage.getItem('macroLogsHistory')) || {};
-    let favorites = JSON.parse(localStorage.getItem('macroFavorites')) || [];
-    let globalTargets = JSON.parse(localStorage.getItem('macroTargets')) || { cal: 2000, p: 150, c: 200, f: 65 };
-    let dailyTargets = JSON.parse(localStorage.getItem('macroDailyTargets')) || {};
-
-    let editingContext = null;
-
-    function getTodayKey() {
-      return new Date().toISOString().split('T')[0];
-    }
-
-    function getTargetForDate(dateKey) {
-      return dailyTargets[dateKey] || globalTargets;
-    }
-
-    document.getElementById('gemini-key').value = localStorage.getItem('geminiApiKey') || '';
-    document.getElementById('serp-key').value = localStorage.getItem('serpApiKey') || '';
-    document.getElementById('target-cal').value = globalTargets.cal;
-    document.getElementById('target-p').value = globalTargets.p;
-    document.getElementById('target-c').value = globalTargets.c;
-    document.getElementById('target-f').value = globalTargets.f;
-
-    function saveSettings() {
-      localStorage.setItem('geminiApiKey', document.getElementById('gemini-key').value.trim());
-      localStorage.setItem('serpApiKey', document.getElementById('serp-key').value.trim());
-      globalTargets = {
-        cal: Number(document.getElementById('target-cal').value) || 2000,
-        p: Number(document.getElementById('target-p').value) || 150,
-        c: Number(document.getElementById('target-c').value) || 200,
-        f: Number(document.getElementById('target-f').value) || 65
-      };
-      localStorage.setItem('macroTargets', JSON.stringify(globalTargets));
-      updateTodayUI();
-    }
-
-    function editDayTarget(dateKey) {
-      const current = getTargetForDate(dateKey);
-      const newCal = prompt(`Calories Target for ${dateKey} (kcal):`, current.cal);
-      if (newCal === null) return;
-      const newP = prompt(`Protein Target for ${dateKey} (g):`, current.p);
-      if (newP === null) return;
-      const newC = prompt(`Carbs Target for ${dateKey} (g):`, current.c);
-      if (newC === null) return;
-      const newF = prompt(`Fat Target for ${dateKey} (g):`, current.f);
-      if (newF === null) return;
-
-      dailyTargets[dateKey] = {
-        cal: Number(newCal) || current.cal,
-        p: Number(newP) || current.p,
-        c: Number(newC) || current.c,
-        f: Number(newF) || current.f
-      };
-
-      localStorage.setItem('macroDailyTargets', JSON.stringify(dailyTargets));
-      updateTodayUI();
-      if (document.getElementById('page-history').style.display === 'block') {
-        renderHistoryUI();
-      }
-    }
-
-    function switchTab(tab) {
-      document.getElementById('page-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
-      document.getElementById('page-favorites').style.display = tab === 'favorites' ? 'block' : 'none';
-      document.getElementById('page-history').style.display = tab === 'history' ? 'block' : 'none';
-
-      document.getElementById('tab-tracker-btn').className = tab === 'tracker' ? 'active' : '';
-      document.getElementById('tab-fav-btn').className = tab === 'favorites' ? 'active' : '';
-      document.getElementById('tab-history-btn').className = tab === 'history' ? 'active' : '';
-
-      if (tab === 'favorites') renderFavoritesUI();
-      if (tab === 'history') renderHistoryUI();
-    }
-
-    function updateProgressBar(barId, remId, current, target, unit) {
-      const pct = Math.min(100, Math.round((current / target) * 100));
-      const barEl = document.getElementById(barId);
-      const remEl = document.getElementById(remId);
-
-      barEl.style.width = Math.min(100, pct) + '%';
-
-      if (current > target) {
-        barEl.className = 'progress-bar-fill fill-over';
-        remEl.innerHTML = `<span style="color:#dc3545; font-weight:bold;">${current - target}${unit} OVER</span>`;
-      } else {
-        barEl.className = 'progress-bar-fill fill-normal';
-        remEl.innerText = `${target - current}${unit} left`;
-      }
-    }
-
-    function updateTodayUI() {
-      const todayKey = getTodayKey();
-      const todayList = allLogs[todayKey] || [];
-      const todayTarget = getTargetForDate(todayKey);
-      const list = document.getElementById('logged-list');
-      list.innerHTML = '';
-      
-      let cal = 0, p = 0, c = 0, f = 0;
-
-      todayList.forEach((item, index) => {
-        cal += item.cal; p += item.p; c += item.c; f += item.f;
-        list.innerHTML += `<li>
-          <span><strong>${item.name}</strong><br><small>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</small></span>
-          <div class="flex-row">
-            <button class="btn-warning btn-sm" onclick="editItem('${todayKey}', ${index})">✏️</button>
-            <button class="btn-secondary btn-sm" onclick="saveToFavoritesFromList('${item.name.replace(/'/g, "\\'")}', ${item.cal}, ${item.p}, ${item.c}, ${item.f})">⭐</button>
-            <button class="btn-danger btn-sm" onclick="deleteItem('${todayKey}', ${index})">✕</button>
-          </div>
-        </li>`;
-      });
-
-      document.getElementById('val-cal').innerText = cal;
-      document.getElementById('val-p').innerText = p;
-      document.getElementById('val-c').innerText = c;
-      document.getElementById('val-f').innerText = f;
-
-      document.getElementById('target-val-cal').innerText = todayTarget.cal;
-      document.getElementById('target-val-p').innerText = todayTarget.p;
-      document.getElementById('target-val-c').innerText = todayTarget.c;
-      document.getElementById('target-val-f').innerText = todayTarget.f;
-
-      updateProgressBar('bar-cal', 'rem-cal', cal, todayTarget.cal, ' kcal');
-      updateProgressBar('bar-p', 'rem-p', p, todayTarget.p, 'g');
-      updateProgressBar('bar-c', 'rem-c', c, todayTarget.c, 'g');
-      updateProgressBar('bar-f', 'rem-f', f, todayTarget.f, 'g');
-
-      updateFavDropdown();
-      localStorage.setItem('macroLogsHistory', JSON.stringify(allLogs));
-    }
-
-    function editItem(dateKey, index) {
-      const item = allLogs[dateKey][index];
-      if (!item) return;
-
-      editingContext = { dateKey, index };
-      showAddForm(item.name, item.cal, item.p, item.c, item.f);
-      document.getElementById('form-title').innerText = `Editing Item (${dateKey})`;
-      document.getElementById('save-item-btn').innerText = "Update Item";
-      switchTab('tracker');
-      document.getElementById('add-form').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function closeForm() {
-      editingContext = null;
-      document.getElementById('add-form').style.display = 'none';
-    }
-
-    function saveItem() {
-      const name = document.getElementById('in-name').value.trim() || 'Custom Item';
-      const cal = Number(document.getElementById('in-cal').value);
-      const p = Number(document.getElementById('in-p').value);
-      const c = Number(document.getElementById('in-c').value);
-      const f = Number(document.getElementById('in-f').value);
-
-      if (editingContext) {
-        allLogs[editingContext.dateKey][editingContext.index] = { name, cal, p, c, f };
-        editingContext = null;
-      } else {
-        const todayKey = getTodayKey();
-        if (!allLogs[todayKey]) allLogs[todayKey] = [];
-        allLogs[todayKey].push({ name, cal, p, c, f });
-      }
-
-      document.getElementById('add-form').style.display = 'none';
-      updateTodayUI();
-      if (document.getElementById('page-history').style.display === 'block') {
-        renderHistoryUI();
-      }
-    }
-
-    // IMAGE COMPRESSOR TO PREVENT OVERSIZED API PAYLOADS
-    function compressAndBase64(file, maxDimension = 1024) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          let width = img.width;
-          let height = img.height;
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = Math.round((height * maxDimension) / width);
-              width = maxDimension;
-            } else {
-              width = Math.round((width * maxDimension) / height);
-              height = maxDimension;
-            }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          resolve(dataUrl.split(',')[1]);
-        };
-        img.onerror = (err) => reject(err);
-        img.src = URL.createObjectURL(file);
-      });
-    }
-
-    // GEMINI FLASH VISION API WITH DETAILED ERROR REPORTING & OCR FALLBACK
-    async function scanFoodImage(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const status = document.getElementById('ocr-status');
-      const geminiKey = localStorage.getItem('geminiApiKey');
-
-      if (geminiKey) {
-        status.innerText = 'Compressing & analyzing image with Gemini Flash AI...';
-        try {
-          const base64Data = await compressAndBase64(file);
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-
-          let response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
-                  { text: 'Analyze this food photo or nutrition label. Identify the dish or product name, and estimate or read its total nutritional values: calories (kcal), protein (g), carbs (g), and fat (g). Return ONLY a raw JSON object with keys: "name", "cal", "p", "c", "f". Do not include markdown, backticks, or additional text.' }
-                ]
-              }]
-            })
-          });
-
-          const data = await response.json();
-
-          if (data.error) {
-            throw new Error(`Gemini API Error (${data.error.code || 'Failed'}): ${data.error.message}`);
-          }
-
-          if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-            let textResult = data.candidates[0].content.parts[0].text.trim();
-            textResult = textResult.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
-            const parsed = JSON.parse(textResult);
-
-            editingContext = null;
-            showAddForm(
-              parsed.name || 'Scanned Meal',
-              Math.round(Number(parsed.cal) || 0),
-              Math.round(Number(parsed.p) || 0),
-              Math.round(Number(parsed.c) || 0),
-              Math.round(Number(parsed.f) || 0)
-            );
-            status.innerText = '✅ Analysis complete with Gemini Flash!';
-            return;
-          }
-        } catch (e) {
-          console.error('Gemini error:', e);
-          status.innerHTML = `<span style="color:#dc3545;">⚠️ ${e.message || 'Gemini request failed'}. Falling back to OCR label scan...</span>`;
-          await new Promise(r => setTimeout(r, 2500));
-        }
-      } else {
-        status.innerText = 'No Gemini API key set. Scanning label with Tesseract OCR...';
-      }
-
-      // Fallback Tesseract OCR
-      status.innerText = 'Scanning label with OCR... Please wait.';
-      try {
-        const worker = await Tesseract.createWorker('eng');
-        const ret = await worker.recognize(file);
-        const text = ret.data.text;
-        await worker.terminate();
-
-        status.innerText = 'Scan complete! Extracting numbers...';
-
-        const getVal = (patterns) => {
-          for (let p of patterns) {
-            const match = text.match(p);
-            if (match && match[1]) return parseInt(match[1]);
-          }
-          return 0;
-        };
-
-        let cal = getVal([
-          /calories\s*[:\-\=]?\s*(\d+)/i,
-          /energy\s*[:\-\=]?\s*(\d+)\s*kcal/i,
-          /(\d+)\s*kcal/i
-        ]);
-
-        if (!cal) {
-          const kj = getVal([
-            /energy\s*[:\-\=]?\s*(\d+)\s*kj/i,
-            /(\d+)\s*kj/i
-          ]);
-          if (kj) cal = Math.round(kj / 4.184);
-        }
-
-        const fat = getVal([
-          /(?:total\s*)?fat\s*[:\-\=]?\s*(\d+)\s*g/i,
-          /lipids?\s*[:\-\=]?\s*(\d+)\s*g/i,
-          /fat\s*(\d+)/i
-        ]);
-
-        const carbs = getVal([
-          /(?:total\s*)?carbohydrate\s*[:\-\=]?\s*(\d+)\s*g/i,
-          /carbs?\s*[:\-\=]?\s*(\d+)\s*g/i,
-          /carbohydrates?\s*(\d+)/i
-        ]);
-
-        const protein = getVal([
-          /protein\s*[:\-\=]?\s*(\d+)\s*g/i,
-          /protein\s*(\d+)/i
-        ]);
-
-        editingContext = null;
-        showAddForm('Scanned Label', cal, protein, carbs, fat);
-        status.innerText = '';
-      } catch (e) {
-        status.innerText = 'Error reading image with OCR. Please make sure image is clear.';
-      }
-    }
-
-    // FAVORITES LOGIC
-    function updateFavDropdown() {
-      const dropdown = document.getElementById('fav-dropdown');
-      dropdown.innerHTML = '<option value="">-- Select a Saved Favorite --</option>';
-      favorites.forEach((fav, i) => {
-        dropdown.innerHTML += `<option value="${i}">${fav.name} (${fav.cal} kcal | P:${fav.p}g C:${fav.c}g F:${fav.f}g)</option>`;
-      });
-    }
-
-    function selectFavorite(index) {
-      if (index === "") return;
-      const fav = favorites[index];
-      if (fav) {
-        editingContext = null;
-        showAddForm(fav.name, fav.cal, fav.p, fav.c, fav.f);
-      }
-      document.getElementById('fav-dropdown').value = "";
-    }
-
-    function saveCurrentToFavorites() {
-      const name = document.getElementById('in-name').value.trim() || 'Custom Item';
-      const cal = Number(document.getElementById('in-cal').value);
-      const p = Number(document.getElementById('in-p').value);
-      const c = Number(document.getElementById('in-c').value);
-      const f = Number(document.getElementById('in-f').value);
-
-      saveToFavoritesFromList(name, cal, p, c, f);
-    }
-
-    function saveToFavoritesFromList(name, cal, p, c, f) {
-      favorites.push({ name, cal, p, c, f });
-      localStorage.setItem('macroFavorites', JSON.stringify(favorites));
-      updateFavDropdown();
-      alert(`"${name}" saved to Favorites!`);
-    }
-
-    function deleteFavorite(index) {
-      favorites.splice(index, 1);
-      localStorage.setItem('macroFavorites', JSON.stringify(favorites));
-      renderFavoritesUI();
-      updateFavDropdown();
-    }
-
-    function renderFavoritesUI() {
-      const list = document.getElementById('favorites-list');
-      list.innerHTML = '';
-      if (favorites.length === 0) {
-        list.innerHTML = '<p class="status">No favorites saved yet.</p>';
-        return;
-      }
-      favorites.forEach((fav, i) => {
-        list.innerHTML += `<li>
-          <span><strong>${fav.name}</strong><br><small>${fav.cal} kcal | P:${fav.p}g C:${fav.c}g F:${fav.f}g</small></span>
-          <div class="flex-row">
-            <button class="btn-success btn-sm" onclick="editingContext=null; showAddForm('${fav.name.replace(/'/g, "\\'")}', ${fav.cal}, ${fav.p}, ${fav.c}, ${fav.f}); switchTab('tracker');">Log</button>
-            <button class="btn-danger btn-sm" onclick="deleteFavorite(${i})">✕</button>
-          </div>
-        </li>`;
-      });
-    }
-
-    // CSV EXPORT LOGIC
-    function exportHistoryCSV() {
-      let csv = "Date,Food Name,Calories (kcal),Protein (g),Carbs (g),Fat (g)\n";
-      const dates = Object.keys(allLogs).sort().reverse();
-
-      if (dates.length === 0) {
-        alert("No logs available to export.");
-        return;
-      }
-
-      dates.forEach(date => {
-        allLogs[date].forEach(item => {
-          const safeName = `"${item.name.replace(/"/g, '""')}"`;
-          csv += `${date},${safeName},${item.cal},${item.p},${item.c},${item.f}\n`;
-        });
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `macro_history_${getTodayKey()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function renderHistoryUI() {
-      const container = document.getElementById('history-container');
-      container.innerHTML = '';
-      const dates = Object.keys(allLogs).sort().reverse();
-
-      if (dates.length === 0) {
-        container.innerHTML = '<p class="status">No historical entries recorded yet.</p>';
-        return;
-      }
-
-      dates.forEach(date => {
-        const items = allLogs[date];
-        if (items.length === 0) return;
-
-        const dateTarget = getTargetForDate(date);
-        let totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
-        items.forEach(i => { totalCal += i.cal; totalP += i.p; totalC += i.c; totalF += i.f; });
-
-        let html = `
-        <div class="history-header">
-          <div class="history-header-title">
-            📅 ${date}<br>
-            <small style="font-weight:normal;">
-              Cal: ${totalCal}/${dateTarget.cal} kcal | P: ${totalP}/${dateTarget.p}g | C: ${totalC}/${dateTarget.c}g | F: ${totalF}/${dateTarget.f}g
-            </small>
-          </div>
-          <button class="btn-warning btn-sm" onclick="editDayTarget('${date}')">🎯 Target</button>
-        </div>
-        <ul>`;
-
-        items.forEach((item, idx) => {
-          html += `<li>
-            <span><strong>${item.name}</strong><br><small>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</small></span>
-            <div class="flex-row">
-              <button class="btn-warning btn-sm" onclick="editItem('${date}', ${idx})">✏️</button>
-              <button class="btn-danger btn-sm" onclick="deleteItem('${date}', ${idx})">✕</button>
-            </div>
-          </li>`;
-        });
-        html += '</ul>';
-        container.innerHTML += html;
-      });
-    }
-
-    // MAIN SEARCH FUNCTION
-    async function searchFood() {
-      const query = document.getElementById('search-input').value.trim();
-      const status = document.getElementById('search-status');
-      if (!query) return;
-
-      status.innerText = "Searching...";
-
-      const serpKey = localStorage.getItem('serpApiKey');
-      if (serpKey) {
-        status.innerText = "Searching Google results...";
-        try {
-          const targetUrl = `[https://serpapi.com/search.json?q=$](https://serpapi.com/search.json?q=$){encodeURIComponent(query + " macro calories protein carbs fat")}&engine=google&api_key=${serpKey}`;
-          const proxyUrl = `[https://corsproxy.io/?$](https://corsproxy.io/?$){encodeURIComponent(targetUrl)}`;
-          
-          const gRes = await fetch(proxyUrl);
-          const gData = await gRes.json();
-
-          let fullText = "";
-          if (gData.answer_box && gData.answer_box.snippet) fullText += gData.answer_box.snippet + " ";
-          if (gData.answer_box && gData.answer_box.answer) fullText += gData.answer_box.answer + " ";
-          if (gData.organic_results) {
-            gData.organic_results.slice(0, 3).forEach(r => { fullText += (r.snippet || "") + " "; });
-          }
-
-          if (fullText) {
-            const extractValue = (labelRegex) => {
-              const match = fullText.match(labelRegex);
-              if (match) {
-                const num1 = parseInt(match[1]);
-                const num2 = match[2] ? parseInt(match[2]) : num1;
-                return Math.round((num1 + num2) / 2);
-              }
-              return 0;
-            };
-
-            let cal = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*(?:kcal|calories)/i);
-            const kj = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*kj/i);
-            if (!cal && kj) cal = Math.round(kj / 4.184);
-
-            const c = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:carbohydrates|carbs|carbohydrate)/i);
-            const p = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?protein/i);
-            const f = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:fat|fats|lipids)/i);
-
-            if (cal || p || c || f) {
-              editingContext = null;
-              showAddForm(query, cal, p, c, f);
-              status.innerText = "Found macros via Google search!";
-              return;
-            }
-          }
-        } catch (e) { console.error("Google search error:", e); }
-      }
-
-      status.innerText = "Searching USDA database...";
-      try {
-        const usdaRes = await fetch(`[https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=$](https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=$){encodeURIComponent(query)}`);
-        const usdaData = await usdaRes.json();
-
-        if (usdaData.foods && usdaData.foods.length > 0) {
-          const food = usdaData.foods[0];
-          let cal = 0, p = 0, c = 0, f = 0;
-
-          food.foodNutrients.forEach(n => {
-            const name = n.nutrientName.toLowerCase();
-            if (name.includes('energy') && (n.unitName === 'KCAL' || !cal)) cal = n.value;
-            if (name.includes('protein')) p = n.value;
-            if (name.includes('carbohydrate')) c = n.value;
-            if (name.includes('total lipid') || name === 'fat') f = n.value;
-          });
-
-          editingContext = null;
-          showAddForm(food.description, Math.round(cal), Math.round(p), Math.round(c), Math.round(f));
-          status.innerText = "";
-          return;
-        }
-      } catch (e) { console.error(e); }
-
-      status.innerText = "";
-      alert("No automatic macros found. Opening manual input form.");
-      editingContext = null;
-      showAddForm(query, 0, 0, 0, 0);
-    }
-
-    function openManualAdd() {
-      editingContext = null;
-      showAddForm('', 0, 0, 0, 0);
-      document.getElementById('form-title').innerText = "Manual Food Entry";
-    }
-
-    function showAddForm(name, cal, p, c, f) {
-      document.getElementById('add-form').style.display = 'block';
-      if (!editingContext) {
-        document.getElementById('form-title').innerText = "Confirm / Edit Item";
-        document.getElementById('save-item-btn').innerText = "Log Meal";
-      }
-      document.getElementById('in-name').value = name;
-      document.getElementById('in-cal').value = cal;
-      document.getElementById('in-p').value = p;
-      document.getElementById('in-c').value = c;
-      document.getElementById('in-f').value = f;
-    }
-
-    function deleteItem(dateKey, index) {
-      if (allLogs[dateKey]) {
-        allLogs[dateKey].splice(index, 1);
-        if (allLogs[dateKey].length === 0) delete allLogs[dateKey];
-        updateTodayUI();
-        if (document.getElementById('page-history').style.display === 'block') {
-          renderHistoryUI();
-        }
-      }
-    }
-
-    function clearTodayLog() {
-      const todayKey = getTodayKey();
-      delete allLogs[todayKey];
-      updateTodayUI();
-    }
-
-    function clearAllHistory() {
-      if (confirm("Are you sure you want to clear all historical log entries?")) {
-        allLogs = {};
-        updateTodayUI();
-        renderHistoryUI();
+        showToast('All history cleared');
       }
     }
 
