@@ -656,9 +656,6 @@
     // MULTI-MODEL GEMINI FALLBACK CALLER
     async function fetchGeminiVision(base64Data, geminiKey) {
       const endpoints = [
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${geminiKey}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`,
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
         `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiKey}`
       ];
@@ -928,63 +925,98 @@
       });
     }
 
-    // MAIN SEARCH FUNCTION
+    // MAIN SEARCH FUNCTION (SERPAPI + USDA FALLBACK)
     async function searchFood() {
       const query = document.getElementById('search-input').value.trim();
       const status = document.getElementById('search-status');
       if (!query) return;
 
-      status.innerText = "Searching...";
+      // Ensure key inputs are saved even if onchange hasn't fired
+      saveSettings();
 
       const serpKey = localStorage.getItem('serpApiKey');
       if (serpKey) {
-        status.innerText = "Searching Google results...";
+        status.innerText = "Searching Google via SerpApi...";
         try {
-          const targetUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query + " macro calories protein carbs fat")}&engine=google&api_key=${serpKey}`;
-          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+          const targetUrl = `[https://serpapi.com/search.json?q=$](https://serpapi.com/search.json?q=$){encodeURIComponent(query + " macro calories protein carbs fat")}&engine=google&api_key=${serpKey}`;
+          
+          let gRes;
+          try {
+            gRes = await fetch(`[https://corsproxy.io/?$](https://corsproxy.io/?$){encodeURIComponent(targetUrl)}`);
+          } catch (err) {
+            gRes = await fetch(`[https://api.allorigins.win/raw?url=$](https://api.allorigins.win/raw?url=$){encodeURIComponent(targetUrl)}`);
+          }
 
-          const gRes = await fetch(proxyUrl);
           const gData = await gRes.json();
 
+          if (gData.error) {
+            throw new Error(`SerpApi error: ${gData.error}`);
+          }
+
           let fullText = "";
-          if (gData.answer_box && gData.answer_box.snippet) fullText += gData.answer_box.snippet + " ";
-          if (gData.answer_box && gData.answer_box.answer) fullText += gData.answer_box.answer + " ";
+          if (gData.answer_box) {
+            if (gData.answer_box.snippet) fullText += gData.answer_box.snippet + " ";
+            if (gData.answer_box.answer) fullText += gData.answer_box.answer + " ";
+            if (gData.answer_box.list_value) fullText += JSON.stringify(gData.answer_box.list_value) + " ";
+          }
           if (gData.organic_results) {
-            gData.organic_results.slice(0, 3).forEach(r => { fullText += (r.snippet || "") + " "; });
+            gData.organic_results.slice(0, 4).forEach(r => { 
+              fullText += (r.title || "") + " " + (r.snippet || "") + " "; 
+            });
           }
 
           if (fullText) {
-            const extractValue = (labelRegex) => {
-              const match = fullText.match(labelRegex);
-              if (match) {
-                const num1 = parseInt(match[1]);
-                const num2 = match[2] ? parseInt(match[2]) : num1;
-                return Math.round((num1 + num2) / 2);
+            const extractVal = (patterns) => {
+              for (let p of patterns) {
+                const m = fullText.match(p);
+                if (m && m[1]) return parseInt(m[1]);
               }
               return 0;
             };
 
-            let cal = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*(?:kcal|calories)/i);
-            const kj = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*kj/i);
-            if (!cal && kj) cal = Math.round(kj / 4.184);
+            let cal = extractVal([
+              /calories\s*[:\-\=]?\s*(\d+)/i,
+              /(\d+)\s*(?:kcal|calories)/i,
+              /energy\s*[:\-\=]?\s*(\d+)/i
+            ]);
 
-            const c = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:carbohydrates|carbs|carbohydrate)/i);
-            const p = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?protein/i);
-            const f = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:fat|fats|lipids)/i);
+            let p = extractVal([
+              /protein\s*[:\-\=]?\s*(\d+)\s*g/i,
+              /(\d+)\s*g\s*(?:of\s*)?protein/i,
+              /protein\s*(\d+)/i
+            ]);
+
+            let c = extractVal([
+              /carbs?\s*[:\-\=]?\s*(\d+)\s*g/i,
+              /carbohydrates?\s*[:\-\=]?\s*(\d+)\s*g/i,
+              /(\d+)\s*g\s*(?:of\s*)?carbs/i
+            ]);
+
+            let f = extractVal([
+              /fat\s*[:\-\=]?\s*(\d+)\s*g/i,
+              /lipids?\s*[:\-\=]?\s*(\d+)\s*g/i,
+              /(\d+)\s*g\s*(?:of\s*)?fat/i
+            ]);
 
             if (cal || p || c || f) {
               editingContext = null;
               showAddForm(query, cal, p, c, f);
-              status.innerText = "Found macros via Google search!";
+              status.innerText = "✅ Found macros via Google Search!";
               return;
+            } else {
+              console.warn("SerpApi returned text, but regex couldn't extract macros:", fullText);
             }
           }
-        } catch (e) { console.error("Google search error:", e); }
+        } catch (e) { 
+          console.error("Google search error:", e); 
+          status.innerText = `⚠️ Google search failed (${e.message}). Falling back to USDA...`;
+          await new Promise(r => setTimeout(r, 1500));
+        }
       }
 
       status.innerText = "Searching USDA database...";
       try {
-        const usdaRes = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=${encodeURIComponent(query)}`);
+        const usdaRes = await fetch(`[https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=$](https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=$){encodeURIComponent(query)}`);
         const usdaData = await usdaRes.json();
 
         if (usdaData.foods && usdaData.foods.length > 0) {
