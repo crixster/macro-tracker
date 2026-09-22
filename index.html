@@ -30,7 +30,7 @@
     details summary::-webkit-details-marker { display: none; }
     .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
 
-    /* Curved Progress Bars */
+    /* Progress Bars */
     .target-box { margin-bottom: 12px; }
     .target-header { display: flex; justify-content: space-between; font-size: 0.88em; font-weight: bold; margin-bottom: 4px; }
     .progress-bar-bg { background: #e9ecef; border-radius: 20px; height: 14px; width: 100%; overflow: hidden; position: relative; }
@@ -40,7 +40,7 @@
 
     ul { list-style: none; padding: 0; margin: 0; }
     li { background: #f8f9fa; border-bottom: 1px solid #e9ecef; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; margin-bottom: 5px; }
-    .status { font-size: 0.85em; color: #666; font-style: italic; margin-top: -5px; margin-bottom: 10px; }
+    .status { font-size: 0.85em; color: #007bff; font-weight: bold; margin-top: 5px; margin-bottom: 10px; word-break: break-word; }
     .history-header { background: #007bff; color: white; padding: 10px 12px; border-radius: 6px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
     .history-header-title { font-weight: bold; font-size: 0.9em; }
     .flex-row { display: flex; gap: 6px; align-items: center; }
@@ -216,7 +216,6 @@
       return dailyTargets[dateKey] || globalTargets;
     }
 
-    // Load initial settings
     document.getElementById('gemini-key').value = localStorage.getItem('geminiApiKey') || '';
     document.getElementById('serp-key').value = localStorage.getItem('serpApiKey') || '';
     document.getElementById('target-cal').value = globalTargets.cal;
@@ -371,7 +370,36 @@
       }
     }
 
-    // GEMINI FLASH VISION API + OCR SCANNER
+    // IMAGE COMPRESSOR TO PREVENT OVERSIZED API PAYLOADS
+    function compressAndBase64(file, maxDimension = 1024) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(dataUrl.split(',')[1]);
+        };
+        img.onerror = (err) => reject(err);
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    // GEMINI FLASH VISION API WITH DETAILED ERROR REPORTING & OCR FALLBACK
     async function scanFoodImage(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -380,18 +408,18 @@
       const geminiKey = localStorage.getItem('geminiApiKey');
 
       if (geminiKey) {
-        status.innerText = 'Analyzing food image with Gemini Flash AI...';
+        status.innerText = 'Compressing & analyzing image with Gemini Flash AI...';
         try {
-          const base64Data = await fileToBase64(file);
-          const mimeType = file.type || 'image/jpeg';
+          const base64Data = await compressAndBase64(file);
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
 
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+          let response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{
                 parts: [
-                  { inline_data: { mime_type: mimeType, data: base64Data } },
+                  { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
                   { text: 'Analyze this food photo or nutrition label. Identify the dish or product name, and estimate or read its total nutritional values: calories (kcal), protein (g), carbs (g), and fat (g). Return ONLY a raw JSON object with keys: "name", "cal", "p", "c", "f". Do not include markdown, backticks, or additional text.' }
                 ]
               }]
@@ -399,7 +427,12 @@
           });
 
           const data = await response.json();
-          if (data.candidates && data.candidates[0].content.parts[0].text) {
+
+          if (data.error) {
+            throw new Error(`Gemini API Error (${data.error.code || 'Failed'}): ${data.error.message}`);
+          }
+
+          if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
             let textResult = data.candidates[0].content.parts[0].text.trim();
             textResult = textResult.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
             const parsed = JSON.parse(textResult);
@@ -412,16 +445,19 @@
               Math.round(Number(parsed.c) || 0),
               Math.round(Number(parsed.f) || 0)
             );
-            status.innerText = 'Analysis complete with Gemini Flash!';
+            status.innerText = '✅ Analysis complete with Gemini Flash!';
             return;
           }
         } catch (e) {
-          console.error('Gemini API Error:', e);
-          status.innerText = 'Gemini API failed. Falling back to OCR label scanner...';
+          console.error('Gemini error:', e);
+          status.innerHTML = `<span style="color:#dc3545;">⚠️ ${e.message || 'Gemini request failed'}. Falling back to OCR label scan...</span>`;
+          await new Promise(r => setTimeout(r, 2500));
         }
+      } else {
+        status.innerText = 'No Gemini API key set. Scanning label with Tesseract OCR...';
       }
 
-      // Tesseract OCR Fallback
+      // Fallback Tesseract OCR
       status.innerText = 'Scanning label with OCR... Please wait.';
       try {
         const worker = await Tesseract.createWorker('eng');
@@ -474,17 +510,8 @@
         showAddForm('Scanned Label', cal, protein, carbs, fat);
         status.innerText = '';
       } catch (e) {
-        status.innerText = 'Error reading image. Please make sure image is clear.';
+        status.innerText = 'Error reading image with OCR. Please make sure image is clear.';
       }
-    }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = error => reject(error);
-        reader.readAsDataURL(file);
-      });
     }
 
     // FAVORITES LOGIC
