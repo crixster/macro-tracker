@@ -5,28 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Free Macro Tracker</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f4f9; }
-    .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
-    input, button { padding: 10px; width: 100%; box-sizing: border-box; margin-top: 5px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; }
-    button { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f4f9; color: #333; }
+    .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 15px; }
+    input, button, select { padding: 10px; width: 100%; box-sizing: border-box; margin-top: 5px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95em; }
+    button { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
     button:hover { background: #0056b3; }
     .btn-secondary { background: #6c757d; }
     .btn-secondary:hover { background: #5a6268; }
     .btn-danger { background: #dc3545; }
     .btn-danger:hover { background: #bd2130; }
-    
+    .btn-success { background: #28a745; }
+    .btn-success:hover { background: #218838; }
+    .btn-warning { background: #ffc107; color: #212529; }
+    .btn-warning:hover { background: #e0a800; }
+    .btn-sm { padding: 5px 8px; width: auto; font-size: 0.82em; }
+
     /* Navigation Tabs */
-    .nav-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-    .nav-tabs button { flex: 1; margin: 0; background: #e9ecef; color: #333; }
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+    .nav-tabs button { flex: 1; margin: 0; background: #e9ecef; color: #495057; border-radius: 8px; }
     .nav-tabs button.active { background: #007bff; color: white; }
 
-    .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; }
-    .macro-box { background: #e9ecef; padding: 10px; border-radius: 5px; }
-    ul { list-style: none; padding: 0; }
-    li { background: #f8f9fa; border-bottom: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+    /* Collapsible Settings */
+    details summary { font-weight: bold; cursor: pointer; padding: 5px 0; color: #007bff; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    details summary::-webkit-details-marker { display: none; }
+    .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+
+    /* Curved Progress Bars */
+    .target-box { margin-bottom: 12px; }
+    .target-header { display: flex; justify-content: space-between; font-size: 0.88em; font-weight: bold; margin-bottom: 4px; }
+    .progress-bar-bg { background: #e9ecef; border-radius: 20px; height: 14px; width: 100%; overflow: hidden; position: relative; }
+    .progress-bar-fill { height: 100%; border-radius: 20px; width: 0%; transition: width 0.4s ease, background-color 0.4s; }
+    .fill-normal { background: #28a745; }
+    .fill-over { background: #dc3545; }
+
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { background: #f8f9fa; border-bottom: 1px solid #e9ecef; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; margin-bottom: 5px; }
     .status { font-size: 0.85em; color: #666; font-style: italic; margin-top: -5px; margin-bottom: 10px; }
-    .api-config { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 0.9em; }
-    .history-date-header { background: #007bff; color: white; padding: 8px 12px; border-radius: 5px; margin-top: 15px; font-weight: bold; }
+    .history-header { background: #007bff; color: white; padding: 10px 12px; border-radius: 6px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .history-header-title { font-weight: bold; font-size: 0.9em; }
+    .flex-row { display: flex; gap: 6px; align-items: center; }
+    .modal-overlay { background: #fdfdfe; border: 2px solid #007bff; padding: 15px; border-radius: 8px; margin-top: 10px; }
   </style>
   <!-- OCR Library -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -35,37 +53,90 @@
 
   <h2>🥗 Free Macro Tracker</h2>
 
+  <!-- Collapsible Settings Panel -->
+  <div class="card">
+    <details id="settings-details">
+      <summary>⚙️ App Settings & Default Targets <span>▼</span></summary>
+      <div style="margin-top: 10px;">
+        <label><strong>Google SerpApi Key (Optional):</strong></label>
+        <input type="password" id="serp-key" placeholder="Paste SerpApi Key for Google Macro Search" onchange="saveSettings()">
+
+        <label><strong>Default Daily Targets:</strong></label>
+        <div class="settings-grid">
+          <div><small>Calories (kcal):</small><input type="number" id="target-cal" value="2000" onchange="saveSettings()"></div>
+          <div><small>Protein (g):</small><input type="number" id="target-p" value="150" onchange="saveSettings()"></div>
+          <div><small>Carbs (g):</small><input type="number" id="target-c" value="200" onchange="saveSettings()"></div>
+          <div><small>Fat (g):</small><input type="number" id="target-f" value="65" onchange="saveSettings()"></div>
+        </div>
+      </div>
+    </details>
+  </div>
+
   <!-- Page Navigation -->
   <div class="nav-tabs">
     <button id="tab-tracker-btn" class="active" onclick="switchTab('tracker')">Tracker</button>
+    <button id="tab-fav-btn" onclick="switchTab('favorites')">⭐ Favorites</button>
     <button id="tab-history-btn" onclick="switchTab('history')">History</button>
   </div>
 
   <!-- TRACKER PAGE -->
   <div id="page-tracker">
-    <!-- Optional API Key Setup -->
-    <div class="api-config">
-      <label><strong>Google Search API Key (SerpApi):</strong></label>
-      <input type="password" id="serp-key" placeholder="Paste free SerpApi Key here for Google macro search" onchange="saveKey()">
-      <small style="color: #666;">Get a free key at <a href="https://serpapi.com" target="_blank">serpapi.com</a> (250 free searches/mo).</small>
-    </div>
-
-    <!-- Daily Summary -->
+    <!-- Macro Targets & Progress Bars -->
     <div class="card">
-      <h3>Today's Totals</h3>
-      <div class="macro-grid">
-        <div class="macro-box"><strong id="total-cal">0</strong><br><small>kcal</small></div>
-        <div class="macro-box"><strong id="total-p">0</strong>g<br><small>Protein</small></div>
-        <div class="macro-box"><strong id="total-c">0</strong>g<br><small>Carbs</small></div>
-        <div class="macro-box"><strong id="total-f">0</strong>g<br><small>Fat</small></div>
+      <div class="flex-row" style="justify-content: space-between;">
+        <h3 style="margin:0;">Today's Target Progress</h3>
+        <button class="btn-secondary btn-sm" onclick="editDayTarget(getTodayKey())">🎯 Edit Today's Target</button>
+      </div>
+      
+      <!-- Calories -->
+      <div class="target-box" style="margin-top:10px;">
+        <div class="target-header">
+          <span>Calories: <span id="val-cal">0</span> / <span id="target-val-cal">2000</span> kcal</span>
+          <span id="rem-cal">2000 kcal left</span>
+        </div>
+        <div class="progress-bar-bg"><div id="bar-cal" class="progress-bar-fill fill-normal"></div></div>
+      </div>
+
+      <!-- Protein -->
+      <div class="target-box">
+        <div class="target-header">
+          <span>Protein: <span id="val-p">0</span> / <span id="target-val-p">150</span>g</span>
+          <span id="rem-p">150g left</span>
+        </div>
+        <div class="progress-bar-bg"><div id="bar-p" class="progress-bar-fill fill-normal"></div></div>
+      </div>
+
+      <!-- Carbs -->
+      <div class="target-box">
+        <div class="target-header">
+          <span>Carbs: <span id="val-c">0</span> / <span id="target-val-c">200</span>g</span>
+          <span id="rem-c">200g left</span>
+        </div>
+        <div class="progress-bar-bg"><div id="bar-c" class="progress-bar-fill fill-normal"></div></div>
+      </div>
+
+      <!-- Fat -->
+      <div class="target-box">
+        <div class="target-header">
+          <span>Fat: <span id="val-f">0</span> / <span id="target-val-f">65</span>g</span>
+          <span id="rem-f">65g left</span>
+        </div>
+        <div class="progress-bar-bg"><div id="bar-f" class="progress-bar-fill fill-normal"></div></div>
       </div>
     </div>
 
-    <!-- Search & Camera Inputs -->
+    <!-- Quick Add from Favorites -->
+    <div class="card">
+      <h3>⭐ Quick-Add Favorite</h3>
+      <select id="fav-dropdown" onchange="selectFavorite(this.value)">
+        <option value="">-- Select a Saved Favorite --</option>
+      </select>
+    </div>
+
+    <!-- Search & Scan Inputs -->
     <div class="card">
       <h3>Add Food Item</h3>
       
-      <!-- Text Search -->
       <label>Search Food (e.g. "Char Kuey Teow", "Chicken Rice"):</label>
       <input type="text" id="search-input" placeholder="Type dish or search query...">
       <button onclick="searchFood()">Search Web & Databases</button>
@@ -73,79 +144,152 @@
 
       <hr>
 
-      <!-- Camera / File Upload for Nutrition Label OCR -->
       <label>📷 Scan Nutrition Label or Food Image:</label>
       <input type="file" id="label-image" accept="image/*" capture="environment" onchange="scanNutritionLabel(event)">
       <p id="ocr-status" class="status"></p>
 
       <hr>
 
-      <!-- Manual Addition Button -->
       <button class="btn-secondary" onclick="openManualAdd()">➕ Manually Add Custom Food</button>
     </div>
 
-    <!-- Confirmation / Manual Form -->
-    <div class="card" id="add-form" style="display:none;">
+    <!-- Confirmation / Edit Form -->
+    <div class="card modal-overlay" id="add-form" style="display:none;">
       <h3 id="form-title">Confirm Item</h3>
       <label>Food Name:</label> <input type="text" id="in-name" placeholder="e.g. Rice Bowl">
       <label>Calories (kcal):</label> <input type="number" id="in-cal" value="0">
       <label>Protein (g):</label> <input type="number" id="in-p" value="0">
       <label>Carbs (g):</label> <input type="number" id="in-c" value="0">
       <label>Fat (g):</label> <input type="number" id="in-f" value="0">
-      <button onclick="saveItem()">Log Meal</button>
+      
+      <div class="flex-row">
+        <button id="save-item-btn" onclick="saveItem()">Log Meal</button>
+        <button class="btn-secondary" onclick="saveCurrentToFavorites()">⭐ Save Favorite</button>
+        <button class="btn-danger btn-sm" onclick="closeForm()">Cancel</button>
+      </div>
     </div>
 
     <!-- Logged Items Today -->
     <div class="card">
       <h3>Logged Today</h3>
       <ul id="logged-list"></ul>
-      <button onclick="clearTodayLog()" class="btn-danger">Clear Today's Log</button>
+      <button onclick="clearTodayLog()" class="btn-danger" style="margin-top:10px;">Clear Today's Log</button>
+    </div>
+  </div>
+
+  <!-- FAVORITES PAGE -->
+  <div id="page-favorites" style="display:none;">
+    <div class="card">
+      <h3>Saved Favorites</h3>
+      <ul id="favorites-list"></ul>
     </div>
   </div>
 
   <!-- HISTORY PAGE -->
   <div id="page-history" style="display:none;">
     <div class="card">
-      <h3>Historical Log Entries</h3>
+      <div class="flex-row" style="justify-content: space-between; margin-bottom: 10px;">
+        <h3 style="margin:0;">Historical Log Entries</h3>
+        <button class="btn-success btn-sm" onclick="exportHistoryCSV()">📥 Export History (CSV)</button>
+      </div>
       <div id="history-container"></div>
       <button onclick="clearAllHistory()" class="btn-danger" style="margin-top:15px;">Delete All History</button>
     </div>
   </div>
 
   <script>
-    // Load historical records from localStorage
     let allLogs = JSON.parse(localStorage.getItem('macroLogsHistory')) || {};
+    let favorites = JSON.parse(localStorage.getItem('macroFavorites')) || [];
+    let globalTargets = JSON.parse(localStorage.getItem('macroTargets')) || { cal: 2000, p: 150, c: 200, f: 65 };
+    let dailyTargets = JSON.parse(localStorage.getItem('macroDailyTargets')) || {};
+
+    let editingContext = null; // { dateKey, index } when editing an existing item
 
     function getTodayKey() {
-      const today = new Date();
-      return today.toISOString().split('T')[0]; // YYYY-MM-DD
+      return new Date().toISOString().split('T')[0];
     }
 
-    // Saved API key setup
-    document.getElementById('serp-key').value = localStorage.getItem('serpApiKey') || '';
+    function getTargetForDate(dateKey) {
+      return dailyTargets[dateKey] || globalTargets;
+    }
 
-    function saveKey() {
+    // Load initial settings
+    document.getElementById('serp-key').value = localStorage.getItem('serpApiKey') || '';
+    document.getElementById('target-cal').value = globalTargets.cal;
+    document.getElementById('target-p').value = globalTargets.p;
+    document.getElementById('target-c').value = globalTargets.c;
+    document.getElementById('target-f').value = globalTargets.f;
+
+    function saveSettings() {
       localStorage.setItem('serpApiKey', document.getElementById('serp-key').value.trim());
+      globalTargets = {
+        cal: Number(document.getElementById('target-cal').value) || 2000,
+        p: Number(document.getElementById('target-p').value) || 150,
+        c: Number(document.getElementById('target-c').value) || 200,
+        f: Number(document.getElementById('target-f').value) || 65
+      };
+      localStorage.setItem('macroTargets', JSON.stringify(globalTargets));
+      updateTodayUI();
+    }
+
+    function editDayTarget(dateKey) {
+      const current = getTargetForDate(dateKey);
+      const newCal = prompt(`Calories Target for ${dateKey} (kcal):`, current.cal);
+      if (newCal === null) return;
+      const newP = prompt(`Protein Target for ${dateKey} (g):`, current.p);
+      if (newP === null) return;
+      const newC = prompt(`Carbs Target for ${dateKey} (g):`, current.c);
+      if (newC === null) return;
+      const newF = prompt(`Fat Target for ${dateKey} (g):`, current.f);
+      if (newF === null) return;
+
+      dailyTargets[dateKey] = {
+        cal: Number(newCal) || current.cal,
+        p: Number(newP) || current.p,
+        c: Number(newC) || current.c,
+        f: Number(newF) || current.f
+      };
+
+      localStorage.setItem('macroDailyTargets', JSON.stringify(dailyTargets));
+      updateTodayUI();
+      if (document.getElementById('page-history').style.display === 'block') {
+        renderHistoryUI();
+      }
     }
 
     function switchTab(tab) {
-      if (tab === 'tracker') {
-        document.getElementById('page-tracker').style.display = 'block';
-        document.getElementById('page-history').style.display = 'none';
-        document.getElementById('tab-tracker-btn').classList.add('active');
-        document.getElementById('tab-history-btn').classList.remove('active');
+      document.getElementById('page-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
+      document.getElementById('page-favorites').style.display = tab === 'favorites' ? 'block' : 'none';
+      document.getElementById('page-history').style.display = tab === 'history' ? 'block' : 'none';
+
+      document.getElementById('tab-tracker-btn').className = tab === 'tracker' ? 'active' : '';
+      document.getElementById('tab-fav-btn').className = tab === 'favorites' ? 'active' : '';
+      document.getElementById('tab-history-btn').className = tab === 'history' ? 'active' : '';
+
+      if (tab === 'favorites') renderFavoritesUI();
+      if (tab === 'history') renderHistoryUI();
+    }
+
+    function updateProgressBar(barId, remId, current, target, unit) {
+      const pct = Math.min(100, Math.round((current / target) * 100));
+      const barEl = document.getElementById(barId);
+      const remEl = document.getElementById(remId);
+
+      barEl.style.width = Math.min(100, pct) + '%';
+
+      if (current > target) {
+        barEl.className = 'progress-bar-fill fill-over';
+        remEl.innerHTML = `<span style="color:#dc3545; font-weight:bold;">${current - target}${unit} OVER</span>`;
       } else {
-        document.getElementById('page-tracker').style.display = 'none';
-        document.getElementById('page-history').style.display = 'block';
-        document.getElementById('tab-tracker-btn').classList.remove('active');
-        document.getElementById('tab-history-btn').classList.add('active');
-        renderHistoryUI();
+        barEl.className = 'progress-bar-fill fill-normal';
+        remEl.innerText = `${target - current}${unit} left`;
       }
     }
 
     function updateTodayUI() {
       const todayKey = getTodayKey();
       const todayList = allLogs[todayKey] || [];
+      const todayTarget = getTargetForDate(todayKey);
       const list = document.getElementById('logged-list');
       list.innerHTML = '';
       
@@ -155,22 +299,169 @@
         cal += item.cal; p += item.p; c += item.c; f += item.f;
         list.innerHTML += `<li>
           <span><strong>${item.name}</strong><br><small>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</small></span>
-          <button class="btn-danger" style="width:auto; padding: 5px 10px;" onclick="deleteItem('${todayKey}', ${index})">✕</button>
+          <div class="flex-row">
+            <button class="btn-warning btn-sm" onclick="editItem('${todayKey}', ${index})">✏️</button>
+            <button class="btn-secondary btn-sm" onclick="saveToFavoritesFromList('${item.name.replace(/'/g, "\\'")}', ${item.cal}, ${item.p}, ${item.c}, ${item.f})">⭐</button>
+            <button class="btn-danger btn-sm" onclick="deleteItem('${todayKey}', ${index})">✕</button>
+          </div>
         </li>`;
       });
 
-      document.getElementById('total-cal').innerText = cal;
-      document.getElementById('total-p').innerText = p;
-      document.getElementById('total-c').innerText = c;
-      document.getElementById('total-f').innerText = f;
-      
+      // Update Today Header Numbers
+      document.getElementById('val-cal').innerText = cal;
+      document.getElementById('val-p').innerText = p;
+      document.getElementById('val-c').innerText = c;
+      document.getElementById('val-f').innerText = f;
+
+      document.getElementById('target-val-cal').innerText = todayTarget.cal;
+      document.getElementById('target-val-p').innerText = todayTarget.p;
+      document.getElementById('target-val-c').innerText = todayTarget.c;
+      document.getElementById('target-val-f').innerText = todayTarget.f;
+
+      // Update Today Progress Bars
+      updateProgressBar('bar-cal', 'rem-cal', cal, todayTarget.cal, ' kcal');
+      updateProgressBar('bar-p', 'rem-p', p, todayTarget.p, 'g');
+      updateProgressBar('bar-c', 'rem-c', c, todayTarget.c, 'g');
+      updateProgressBar('bar-f', 'rem-f', f, todayTarget.f, 'g');
+
+      updateFavDropdown();
       localStorage.setItem('macroLogsHistory', JSON.stringify(allLogs));
+    }
+
+    // ITEM EDITING LOGIC
+    function editItem(dateKey, index) {
+      const item = allLogs[dateKey][index];
+      if (!item) return;
+
+      editingContext = { dateKey, index };
+      showAddForm(item.name, item.cal, item.p, item.c, item.f);
+      document.getElementById('form-title').innerText = `Editing Item (${dateKey})`;
+      document.getElementById('save-item-btn').innerText = "Update Item";
+      switchTab('tracker');
+      document.getElementById('add-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function closeForm() {
+      editingContext = null;
+      document.getElementById('add-form').style.display = 'none';
+    }
+
+    function saveItem() {
+      const name = document.getElementById('in-name').value.trim() || 'Custom Item';
+      const cal = Number(document.getElementById('in-cal').value);
+      const p = Number(document.getElementById('in-p').value);
+      const c = Number(document.getElementById('in-c').value);
+      const f = Number(document.getElementById('in-f').value);
+
+      if (editingContext) {
+        // Update existing item in specific date
+        allLogs[editingContext.dateKey][editingContext.index] = { name, cal, p, c, f };
+        editingContext = null;
+      } else {
+        // Add new item to Today
+        const todayKey = getTodayKey();
+        if (!allLogs[todayKey]) allLogs[todayKey] = [];
+        allLogs[todayKey].push({ name, cal, p, c, f });
+      }
+
+      document.getElementById('add-form').style.display = 'none';
+      updateTodayUI();
+      if (document.getElementById('page-history').style.display === 'block') {
+        renderHistoryUI();
+      }
+    }
+
+    // FAVORITES LOGIC
+    function updateFavDropdown() {
+      const dropdown = document.getElementById('fav-dropdown');
+      dropdown.innerHTML = '<option value="">-- Select a Saved Favorite --</option>';
+      favorites.forEach((fav, i) => {
+        dropdown.innerHTML += `<option value="${i}">${fav.name} (${fav.cal} kcal | P:${fav.p}g C:${fav.c}g F:${fav.f}g)</option>`;
+      });
+    }
+
+    function selectFavorite(index) {
+      if (index === "") return;
+      const fav = favorites[index];
+      if (fav) {
+        editingContext = null;
+        showAddForm(fav.name, fav.cal, fav.p, fav.c, fav.f);
+      }
+      document.getElementById('fav-dropdown').value = "";
+    }
+
+    function saveCurrentToFavorites() {
+      const name = document.getElementById('in-name').value.trim() || 'Custom Item';
+      const cal = Number(document.getElementById('in-cal').value);
+      const p = Number(document.getElementById('in-p').value);
+      const c = Number(document.getElementById('in-c').value);
+      const f = Number(document.getElementById('in-f').value);
+
+      saveToFavoritesFromList(name, cal, p, c, f);
+    }
+
+    function saveToFavoritesFromList(name, cal, p, c, f) {
+      favorites.push({ name, cal, p, c, f });
+      localStorage.setItem('macroFavorites', JSON.stringify(favorites));
+      updateFavDropdown();
+      alert(`"${name}" saved to Favorites!`);
+    }
+
+    function deleteFavorite(index) {
+      favorites.splice(index, 1);
+      localStorage.setItem('macroFavorites', JSON.stringify(favorites));
+      renderFavoritesUI();
+      updateFavDropdown();
+    }
+
+    function renderFavoritesUI() {
+      const list = document.getElementById('favorites-list');
+      list.innerHTML = '';
+      if (favorites.length === 0) {
+        list.innerHTML = '<p class="status">No favorites saved yet.</p>';
+        return;
+      }
+      favorites.forEach((fav, i) => {
+        list.innerHTML += `<li>
+          <span><strong>${fav.name}</strong><br><small>${fav.cal} kcal | P:${fav.p}g C:${fav.c}g F:${fav.f}g</small></span>
+          <div class="flex-row">
+            <button class="btn-success btn-sm" onclick="editingContext=null; showAddForm('${fav.name.replace(/'/g, "\\'")}', ${fav.cal}, ${fav.p}, ${fav.c}, ${fav.f}); switchTab('tracker');">Log</button>
+            <button class="btn-danger btn-sm" onclick="deleteFavorite(${i})">✕</button>
+          </div>
+        </li>`;
+      });
+    }
+
+    // CSV EXPORT LOGIC
+    function exportHistoryCSV() {
+      let csv = "Date,Food Name,Calories (kcal),Protein (g),Carbs (g),Fat (g)\n";
+      const dates = Object.keys(allLogs).sort().reverse();
+
+      if (dates.length === 0) {
+        alert("No logs available to export.");
+        return;
+      }
+
+      dates.forEach(date => {
+        allLogs[date].forEach(item => {
+          const safeName = `"${item.name.replace(/"/g, '""')}"`;
+          csv += `${date},${safeName},${item.cal},${item.p},${item.c},${item.f}\n`;
+        });
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `macro_history_${getTodayKey()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
     function renderHistoryUI() {
       const container = document.getElementById('history-container');
       container.innerHTML = '';
-
       const dates = Object.keys(allLogs).sort().reverse();
 
       if (dates.length === 0) {
@@ -182,14 +473,29 @@
         const items = allLogs[date];
         if (items.length === 0) return;
 
+        const dateTarget = getTargetForDate(date);
         let totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
         items.forEach(i => { totalCal += i.cal; totalP += i.p; totalC += i.c; totalF += i.f; });
 
-        let html = `<div class="history-date-header">${date} (Total: ${totalCal} kcal | P:${totalP}g C:${totalC}g F:${totalF}g)</div><ul>`;
+        let html = `
+        <div class="history-header">
+          <div class="history-header-title">
+            📅 ${date}<br>
+            <small style="font-weight:normal;">
+              Cal: ${totalCal}/${dateTarget.cal} kcal | P: ${totalP}/${dateTarget.p}g | C: ${totalC}/${dateTarget.c}g | F: ${totalF}/${dateTarget.f}g
+            </small>
+          </div>
+          <button class="btn-warning btn-sm" onclick="editDayTarget('${date}')">🎯 Target</button>
+        </div>
+        <ul>`;
+
         items.forEach((item, idx) => {
           html += `<li>
             <span><strong>${item.name}</strong><br><small>${item.cal} kcal | P:${item.p}g C:${item.c}g F:${item.f}g</small></span>
-            <button class="btn-danger" style="width:auto; padding: 5px 10px;" onclick="deleteItem('${date}', ${idx})">✕</button>
+            <div class="flex-row">
+              <button class="btn-warning btn-sm" onclick="editItem('${date}', ${idx})">✏️</button>
+              <button class="btn-danger btn-sm" onclick="deleteItem('${date}', ${idx})">✕</button>
+            </div>
           </li>`;
         });
         html += '</ul>';
@@ -205,7 +511,6 @@
 
       status.innerText = "Searching...";
 
-      // Google SerpApi Search
       const serpKey = localStorage.getItem('serpApiKey');
       if (serpKey) {
         status.innerText = "Searching Google results...";
@@ -236,13 +541,14 @@
 
             let cal = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*(?:kcal|calories)/i);
             const kj = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*kj/i);
-            if (!cal && kj) cal = Math.round(kj / 4.184); // Convert kJ to kcal if calories missing
+            if (!cal && kj) cal = Math.round(kj / 4.184);
 
             const c = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:carbohydrates|carbs|carbohydrate)/i);
             const p = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?protein/i);
             const f = extractValue(/(\d+)\s*(?:to|-)?\s*(\d+)?\s*g?\s*(?:of\s*)?(?:fat|fats|lipids)/i);
 
             if (cal || p || c || f) {
+              editingContext = null;
               showAddForm(query, cal, p, c, f);
               status.innerText = "Found macros via Google search!";
               return;
@@ -251,7 +557,6 @@
         } catch (e) { console.error("Google search error:", e); }
       }
 
-      // Fallback to USDA Food Central API
       status.innerText = "Searching USDA database...";
       try {
         const usdaRes = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=${encodeURIComponent(query)}`);
@@ -269,6 +574,7 @@
             if (name.includes('total lipid') || name === 'fat') f = n.value;
           });
 
+          editingContext = null;
           showAddForm(food.description, Math.round(cal), Math.round(p), Math.round(c), Math.round(f));
           status.innerText = "";
           return;
@@ -277,10 +583,11 @@
 
       status.innerText = "";
       alert("No automatic macros found. Opening manual input form.");
+      editingContext = null;
       showAddForm(query, 0, 0, 0, 0);
     }
 
-    // Enhanced Nutrition Label Scan with kJ Conversion & Fat/Carb Parsing
+    // Nutrition Label OCR Scan with kJ Conversion
     async function scanNutritionLabel(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -296,7 +603,6 @@
 
         status.innerText = 'Scan complete! Extracting numbers...';
 
-        // Extract value matching list of pattern regexes
         const getVal = (patterns) => {
           for (let p of patterns) {
             const match = text.match(p);
@@ -305,14 +611,12 @@
           return 0;
         };
 
-        // Check for Calories first
         let cal = getVal([
           /calories\s*[:\-\=]?\s*(\d+)/i,
           /energy\s*[:\-\=]?\s*(\d+)\s*kcal/i,
           /(\d+)\s*kcal/i
         ]);
 
-        // If no kcal match, check for kJ and convert (1 kcal = 4.184 kJ)
         if (!cal) {
           const kj = getVal([
             /energy\s*[:\-\=]?\s*(\d+)\s*kj/i,
@@ -321,7 +625,6 @@
           if (kj) cal = Math.round(kj / 4.184);
         }
 
-        // Expanded regex patterns for Fat and Carbs
         const fat = getVal([
           /(?:total\s*)?fat\s*[:\-\=]?\s*(\d+)\s*g/i,
           /lipids?\s*[:\-\=]?\s*(\d+)\s*g/i,
@@ -339,6 +642,7 @@
           /protein\s*(\d+)/i
         ]);
 
+        editingContext = null;
         showAddForm('Scanned Label', cal, protein, carbs, fat);
         status.innerText = '';
       } catch (e) {
@@ -347,36 +651,22 @@
     }
 
     function openManualAdd() {
+      editingContext = null;
       showAddForm('', 0, 0, 0, 0);
       document.getElementById('form-title').innerText = "Manual Food Entry";
     }
 
     function showAddForm(name, cal, p, c, f) {
       document.getElementById('add-form').style.display = 'block';
-      document.getElementById('form-title').innerText = "Confirm / Edit Item";
+      if (!editingContext) {
+        document.getElementById('form-title').innerText = "Confirm / Edit Item";
+        document.getElementById('save-item-btn').innerText = "Log Meal";
+      }
       document.getElementById('in-name').value = name;
       document.getElementById('in-cal').value = cal;
       document.getElementById('in-p').value = p;
       document.getElementById('in-c').value = c;
       document.getElementById('in-f').value = f;
-    }
-
-    function saveItem() {
-      const name = document.getElementById('in-name').value.trim() || 'Custom Item';
-      const todayKey = getTodayKey();
-
-      if (!allLogs[todayKey]) allLogs[todayKey] = [];
-
-      allLogs[todayKey].push({
-        name: name,
-        cal: Number(document.getElementById('in-cal').value),
-        p: Number(document.getElementById('in-p').value),
-        c: Number(document.getElementById('in-c').value),
-        f: Number(document.getElementById('in-f').value)
-      });
-
-      document.getElementById('add-form').style.display = 'none';
-      updateTodayUI();
     }
 
     function deleteItem(dateKey, index) {
